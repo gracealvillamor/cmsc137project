@@ -14,6 +14,10 @@ public class TCPClient{
 		BufferedReader IN = new BufferedReader(reader);
 		final Thread sendThread, receiveThread;
 
+		System.out.print("Enter your name: ");
+		String name = user.readLine();
+		OUT.println(name);
+		
 		final Runnable send = new Runnable() {
             public void run() {
                 while(true){

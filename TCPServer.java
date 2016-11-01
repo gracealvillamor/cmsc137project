@@ -14,11 +14,12 @@ public class TCPServer{
 		ServerSocket SERVER = new ServerSocket(60010);
 
 		Socket[] SOCK = new Socket[numplayers];
-		InputStreamReader reader[] = new InputStreamReader[numplayers];
-		BufferedReader IN[] = new BufferedReader[numplayers];
-		PrintStream OUT[] = new PrintStream[numplayers];
-		final Runnable receiver[] = new Runnable[numplayers];
-		final Runnable checker[] = new Runnable[numplayers];
+		InputStreamReader[] reader = new InputStreamReader[numplayers];
+		BufferedReader[] IN = new BufferedReader[numplayers];
+		PrintStream[] OUT = new PrintStream[numplayers];
+		final Runnable[] receiver = new Runnable[numplayers];
+		final Runnable[] checker = new Runnable[numplayers];
+		String[] name = new String[numplayers];
 		// CountDownLatch doneSignal = new CountDownLatch(numplayers);
 		// CountDownLatch latch = new CountDownLatch(numplayers);
 
@@ -27,6 +28,7 @@ public class TCPServer{
 			reader[i] = new InputStreamReader(SOCK[i].getInputStream());
 			IN[i] = new BufferedReader(reader[i]);
 			OUT[i] = new PrintStream(SOCK[i].getOutputStream());
+			name[i] = IN[i].readLine();
 			final int f = i;
 			receiver[i] = new Runnable(){
 				public void run(){
@@ -41,8 +43,7 @@ public class TCPServer{
 								} 
 								if(message != null){
 									for(int j = 0; j<numplayers; j+=1){
-											if(j!=f) OUT[j].println(message);
-										
+											if(j!=f) OUT[j].println(name[f] + ": " + message);
 									}
 								}
 							}catch(IOException e){}
@@ -67,7 +68,7 @@ public class TCPServer{
 		//doneSignal.await();
 
 		for(int i = 0; i<numplayers; i+=1) receiverThread[i].join();
-			
+
 		for(int i = 0; i<numplayers; i+=1){
 			OUT[i].close();
 			IN[i].close();
