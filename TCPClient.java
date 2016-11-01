@@ -12,6 +12,7 @@ public class TCPClient{
 		BufferedReader user = new BufferedReader(new InputStreamReader(System.in));
 		InputStreamReader reader = new InputStreamReader(SOCK.getInputStream());
 		BufferedReader IN = new BufferedReader(reader);
+		final Thread sendThread, receiveThread;
 
 		final Runnable send = new Runnable() {
             public void run() {
@@ -29,11 +30,16 @@ public class TCPClient{
                 	}catch(IOException e){}
                 	
                 }
+
             }
         };
+
+        sendThread = new Thread(send);
+
         final Runnable receive = new Runnable() {
             public void run() {
                 while(true){
+                	if(sendThread.getState()==Thread.State.TERMINATED) break;
                 	try{
                 		String message = IN.readLine();
                 		System.out.println(message);
@@ -42,17 +48,18 @@ public class TCPClient{
                 }
             }
         };
-
-		Thread sendThread = new Thread(send);
-		Thread receiveThread = new Thread(receive);
+		
+		receiveThread = new Thread(receive);
 
 		sendThread.start();
 		receiveThread.start();
 		
-		if(sendThread.getState()==Thread.State.TERMINATED) {
-			System.out.println("close");
-			System.out.println(sendThread.getState());
-			SOCK.close();
+		while(true){
+			if(sendThread.getState()==Thread.State.TERMINATED) {
+				SOCK.close();
+				break;
+			}
 		}
+		
 	}
 }

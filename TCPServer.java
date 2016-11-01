@@ -19,7 +19,7 @@ public class TCPServer{
 		PrintStream OUT[] = new PrintStream[numplayers];
 		final Runnable receiver[] = new Runnable[numplayers];
 		final Runnable checker[] = new Runnable[numplayers];
-		CountDownLatch latch = new CountDownLatch(1000);
+		CountDownLatch latch = new CountDownLatch(numplayers);
 
 		for(int i = 0; i<numplayers; i+=1){
 			SOCK[i] = SERVER.accept();		
@@ -33,7 +33,10 @@ public class TCPServer{
 						try{
 							String message = IN[f].readLine();
 							System.out.println(message);
-							if(message.equals("quit")) break;
+							if(message.equals("quit")){
+								OUT[f].println();
+								break;
+							} 
 							if(message != null){
 								for(int j = 0; j<numplayers; j+=1){
 										if(j!=f) OUT[j].println(message);
@@ -57,7 +60,7 @@ public class TCPServer{
 		}
 
 		latch.await();
-		
+		System.out.println("!!!!");
 		for(int i = 0; i<numplayers; i+=1){
 			OUT[i].close();
 			IN[i].close();
