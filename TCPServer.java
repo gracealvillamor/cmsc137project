@@ -19,7 +19,8 @@ public class TCPServer{
 		PrintStream OUT[] = new PrintStream[numplayers];
 		final Runnable receiver[] = new Runnable[numplayers];
 		final Runnable checker[] = new Runnable[numplayers];
-		CountDownLatch latch = new CountDownLatch(numplayers);
+		// CountDownLatch doneSignal = new CountDownLatch(numplayers);
+		// CountDownLatch latch = new CountDownLatch(numplayers);
 
 		for(int i = 0; i<numplayers; i+=1){
 			SOCK[i] = SERVER.accept();		
@@ -29,23 +30,27 @@ public class TCPServer{
 			final int f = i;
 			receiver[i] = new Runnable(){
 				public void run(){
-					while(true){
-						try{
-							String message = IN[f].readLine();
-							System.out.println(message);
-							if(message.equals("quit")){
-								OUT[f].println();
-								break;
-							} 
-							if(message != null){
-								for(int j = 0; j<numplayers; j+=1){
-										if(j!=f) OUT[j].println(message);
-									
+					try{
+						while(true){
+							try{
+								String message = IN[f].readLine();
+								System.out.println(message);
+								if(message.equals("quit")){
+									OUT[f].println();
+									break;
+								} 
+								if(message != null){
+									for(int j = 0; j<numplayers; j+=1){
+											if(j!=f) OUT[j].println(message);
+										
+									}
 								}
-							}
-						}catch(IOException e){}
-						
-					}
+							}catch(IOException e){}
+							
+						}
+						//latch.countDown();
+					}catch(Exception e) {}
+					
 
 				}
 			};
@@ -59,8 +64,10 @@ public class TCPServer{
 			
 		}
 
-		latch.await();
-		System.out.println("!!!!");
+		//doneSignal.await();
+
+		for(int i = 0; i<numplayers; i+=1) receiverThread[i].join();
+			
 		for(int i = 0; i<numplayers; i+=1){
 			OUT[i].close();
 			IN[i].close();
