@@ -7,26 +7,26 @@ public class TCPClient{
 		myClient.run();
 	}
 	public void run() throws Exception{
-		Socket SOCK = new Socket("localhost", 60010);
+		Socket SOCK = new Socket("localhost", 60010); //ip address of server and port to connect to
 		PrintStream OUT = new PrintStream(SOCK.getOutputStream());
 		BufferedReader user = new BufferedReader(new InputStreamReader(System.in));
 		InputStreamReader reader = new InputStreamReader(SOCK.getInputStream());
 		BufferedReader IN = new BufferedReader(reader);
-		final Thread sendThread, receiveThread;
 
+		//gets the preferred name of client
 		System.out.print("Enter your name: ");
 		String name = user.readLine();
 		OUT.println(name);
-		
+
 		final Runnable send = new Runnable() {
             public void run() {
                 while(true){
                 	try{
                 		//System.out.print("Enter message: ");
-						String message1 = user.readLine();
-						OUT.println(message1);
+						String clientMessage = user.readLine();
+						OUT.println(clientMessage);
 
-						if((message1.equals("quit"))){
+						if((clientMessage.equals("quit"))){ //closes readers if the client has already quit
 							IN.close();
 							OUT.close();
 							break;
@@ -38,27 +38,27 @@ public class TCPClient{
             }
         };
 
-        sendThread = new Thread(send);
+        final Thread sendThread = new Thread(send);
 
         final Runnable receive = new Runnable() {
-            public void run() {
+            public void run() { //for constantly receiving messages from server
                 while(true){
                 	if(sendThread.getState()==Thread.State.TERMINATED) break;
                 	try{
-                		String message = IN.readLine();
-                		System.out.println(message);
+                		String serverMessage = IN.readLine();
+                		System.out.println(serverMessage);
                 	}catch(IOException e){}
                 	
                 }
             }
         };
 		
-		receiveThread = new Thread(receive);
+		final Thread receiveThread = new Thread(receive);
 
 		sendThread.start();
 		receiveThread.start();
 		
-		while(true){
+		while(true){ //closes socket if client has already quit
 			if(sendThread.getState()==Thread.State.TERMINATED) {
 				SOCK.close();
 				break;
