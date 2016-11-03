@@ -213,6 +213,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 	private final DataModel model;
 	private JTextArea chatArea;
 	private JScrollPane scroll;
+	private GameProperPanel gameProper;
 	Thread T = null;
 
 	public GamePanel(DataModel model){
@@ -244,7 +245,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 		        //We get the text from the textfield
 		        String fromUser = userInputField.getText();
 
-		        if (fromUser != "") {
+		        if (fromUser != null) {
 		            //We append the text from the user
 		            chatArea.append(model.getNameOfClient() + ": " + fromUser + "\n");
 		 			model.sendMessage(fromUser);
@@ -260,6 +261,9 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 		
 		this.add(scroll);
 		this.add(userInputField);
+		
+		gameProper = new GameProperPanel();
+		this.add(gameProper, BorderLayout.CENTER);
 	    
 	}
 	public void run(){
@@ -303,7 +307,102 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 
   }
 }
+class GameProperPanel extends JPanel implements MouseListener{
+	JButton[][] buttons = new JButton[5][5];
 
+	ImageIcon i1 = new ImageIcon("i1.png");
+	ImageIcon i2 = new ImageIcon("i2.png");
+	ImageIcon i3 = new ImageIcon("i3.png");
+	ImageIcon i4 = new ImageIcon("i4.png");
+
+	int clicks = 0;
+	LinkedList<Integer> previousIndices;
+
+	public GameProperPanel(){
+		this.setLayout(new GridLayout(5,5));
+
+		for(int i=0; i<5; i++){
+			for(int j=0; j<5; j++){
+				buttons[i][j] = new JButton(generateRandomImage());
+				buttons[i][j].addMouseListener(this);
+				this.add(buttons[i][j]);
+			}
+		}
+
+
+	}
+	public void mouseClicked(MouseEvent evt){
+		clicks += 1;
+
+		
+
+		// buttons[indices.get(0)][indices.get(1)];
+		if(clicks == 1){
+			previousIndices = getIndicesOfButton(buttons, (JButton)evt.getComponent());
+		}
+		else{
+			LinkedList<Integer> indices = getIndicesOfButton(buttons, (JButton)evt.getComponent());
+
+			System.out.println(previousIndices);
+			System.out.println(indices);
+
+			//swap previously clicked and just clicked buttons
+			JButton prevClickedButton = buttons[previousIndices.get(0)][previousIndices.get(1)];
+			buttons[previousIndices.get(0)][previousIndices.get(1)] = buttons[indices.get(0)][indices.get(1)];
+			buttons[indices.get(0)][indices.get(1)] = prevClickedButton;
+
+			this.removeAll();
+			for(int i=0; i<5; i++){
+				for(int j=0; j<5; j++){
+					this.add(buttons[i][j]);
+				}
+			}
+			this.revalidate();
+			this.repaint();
+			clicks = 0;
+		} 
+	}
+	
+	public void mousePressed(MouseEvent e){}	
+	public void mouseReleased(MouseEvent e){}	
+	public void mouseEntered(MouseEvent e){}	
+	public void mouseExited(MouseEvent e){}	
+			
+
+	public ImageIcon generateRandomImage(){
+		switch((new Random()).nextInt(4) + 1){
+			case 1: return i1;
+			case 2: return i2;
+			case 3: return i3;
+			case 4: return i4;
+		}
+		return null;
+	}
+
+	public LinkedList<Integer> getIndicesOfButton(JButton[][] buttonArray, JButton button){
+		for(int i=0; i<5; i++){
+			for(int j=0; j<5; j++){
+				if(button == buttonArray[i][j])
+					return new LinkedList<Integer>(Arrays.asList(i, j));
+			}
+		}
+		return null;
+	}
+
+
+
+
+	public void paintComponent(Graphics g) {
+		Graphics2D g2d = (Graphics2D)g;
+
+		this.setSize(500,400);
+		this.setLocation(200,300);
+		//g.drawImage(img, 0, 0, null);
+
+		g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON); //to avoid pixelation
+	}
+
+}
 class ResultPanel extends JPanel{ //panel showing results
 
 	private Image img;
