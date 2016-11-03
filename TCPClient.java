@@ -8,6 +8,8 @@ import java.awt.image.*;
 import javax.imageio.*;
 
 public class TCPClient{
+	private boolean isFinished = false;
+
 	public static void main(String[] args) throws Exception{
 
 		MainFrame frame = new MainFrame();
@@ -17,9 +19,9 @@ public class TCPClient{
 		frame.setVisible(true);
 		frame.setResizable(false);
 		frame.setSize(new Dimension(800,640));
-
-		// TCPClient myClient = new TCPClient();
-		// myClient.run();
+	}
+	public boolean isFinished(){
+		return isFinished;
 	}
 	public void run(DataModel model) throws Exception{
 		Socket SOCK = new Socket("localhost", 60010); //ip address of server and port to connect to
@@ -28,9 +30,6 @@ public class TCPClient{
 		InputStreamReader reader = new InputStreamReader(SOCK.getInputStream());
 		BufferedReader IN = new BufferedReader(reader);
 
-		//gets the preferred name of client
-		//System.out.print("Enter your name: ");
-		//String name = user.readLine();
 		System.out.println("--- " + model.getNameOfClient() + " ---");
 		OUT.println(model.getNameOfClient());
 
@@ -38,12 +37,15 @@ public class TCPClient{
             public void run() { //for constantly receiving messages from client
                 while(true){
                 	try{
-                		//System.out.print("Enter message: ");
-						// String clientMessage = user.readLine();
-						if(model.getMessageToSend() != null){
-							String clientMessage = model.getMessageToSend();
+						String clientMessage = model.getMessageToSend();
+
+						System.out.println("\" " + clientMessage + "\" ");
+						if(clientMessage != null ){
+							
 							System.out.println("Sending... \t" + clientMessage);
-							OUT.println(model.getMessageToSend());
+							OUT.println(clientMessage);
+
+							model.sendMessage(null);
 
 							if((clientMessage.equals("quit"))){ //closes readers if the client has already quit
 								IN.close();
@@ -84,6 +86,7 @@ public class TCPClient{
 		
 		while(true){ //closes socket if client has already quit
 			if(sendThread.getState()==Thread.State.TERMINATED) {
+				isFinished = true;
 				SOCK.close();
 				break;
 			}
@@ -91,6 +94,7 @@ public class TCPClient{
 		
 	}
 }
+
 class DataModel{
 	private String name;
 	private String latestMessage;
@@ -109,7 +113,9 @@ class DataModel{
 		this.latestMessage = message;
 	}
 	public String getLatestMessage(){
-		return this.latestMessage;
+		String message = this.latestMessage;
+		this.latestMessage = null;
+		return message;
 	}
 	public void sendMessage(String message){
 		this.messageToSend = message;
@@ -201,10 +207,12 @@ class MenuPanel extends JPanel{
 		g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON); //to avoid pixelation
 	}
 }
-class GamePanel extends JPanel implements Runnable{
+class GamePanel extends JPanel implements Runnable{ //panel showing the game proper
 
 	private Image img;
 	private final DataModel model;
+	private JTextArea chatArea;
+	private JScrollPane scroll;
 	Thread T = null;
 
 	public GamePanel(DataModel model){
@@ -218,13 +226,12 @@ class GamePanel extends JPanel implements Runnable{
 
 	    this.model = model;
 
-	    JTextArea chatArea = new JTextArea(10, 50);
+	    chatArea = new JTextArea(10, 50);
 	    chatArea.setLineWrap(true);
 	    chatArea.setWrapStyleWord(true);
 	    chatArea.setEditable(false);
-	    // chatArea.setBackground(Color.RED);
 
-	    JScrollPane scroll = new JScrollPane(chatArea);
+	    scroll = new JScrollPane(chatArea);
 		// scroll.setPreferredSize(new Dimension(700,100));
 		scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 	    
@@ -237,7 +244,7 @@ class GamePanel extends JPanel implements Runnable{
 		        //We get the text from the textfield
 		        String fromUser = userInputField.getText();
 
-		        if (fromUser != null) {
+		        if (fromUser != "") {
 		            //We append the text from the user
 		            chatArea.append(model.getNameOfClient() + ": " + fromUser + "\n");
 		 			model.sendMessage(fromUser);
@@ -253,15 +260,32 @@ class GamePanel extends JPanel implements Runnable{
 		
 		this.add(scroll);
 		this.add(userInputField);
-		// this.add(userInputField);
-		// this.add(chatArea, BorderLayout.CENTER);
 	    
 	}
 	public void run(){
 		TCPClient myClient = new TCPClient();
 		try{
 			System.out.println("!!!!!NAME!!!!!!\t" + this.model.getNameOfClient());
+
+			final Runnable checker = new Runnable() {
+	            public void run() { //for constantly receiving messages from server
+	                while(true){
+						System.out.println("yes");
+						if(myClient.isFinished()) break;
+						String msg = model.getLatestMessage();
+						if(msg != null){
+							chatArea.append(msg + "\n");
+						}
+					}
+	            }
+	        };
+
+	        final Thread checkerThread = new Thread(checker);
+
+			checkerThread.start();
+
 			myClient.run(this.model);
+			
 		}catch(Exception ex){}
 	}
 	public void start(){
@@ -279,7 +303,8 @@ class GamePanel extends JPanel implements Runnable{
 
   }
 }
-class ResultPanel extends JPanel{
+
+class ResultPanel extends JPanel{ //panel showing results
 
 	private Image img;
 
@@ -294,11 +319,12 @@ class ResultPanel extends JPanel{
     
     	g.drawImage(img, 0, 0, null);
 	    
-	    g.drawString("Game panel", 270, 310);
+	    g.drawString("Result panel", 270, 310);
 
   }
 }
-class JoinButton extends JButton{
+
+class JoinButton extends JButton{ //button in MenuPanel
 	public JoinButton(){
 		super("Join Game!");
 		this.setSize(400,100);
