@@ -95,6 +95,14 @@ public class TCPClient{
 	}
 }
 
+interface Constants {
+	/**
+	 * Number of rows and columns of the game grid
+	 */
+	public static final int ROWS=5;
+	public static final int COLS=5;
+}
+
 class DataModel{
 	private String name;
 	private String latestMessage;
@@ -307,8 +315,8 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 
   }
 }
-class GameProperPanel extends JPanel implements MouseListener{
-	JButton[][] buttons = new JButton[5][5];
+class GameProperPanel extends JPanel implements MouseListener, Constants{
+	final JButton[][] buttons = new JButton[ROWS][COLS];
 
 	ImageIcon i1 = new ImageIcon("i1.png");
 	ImageIcon i2 = new ImageIcon("i2.png");
@@ -317,18 +325,26 @@ class GameProperPanel extends JPanel implements MouseListener{
 
 	int clicks = 0;
 	LinkedList<Integer> previousIndices;
+	int matchChecker= 0;
+	boolean hasMatches = true;
 
 	public GameProperPanel(){
-		this.setLayout(new GridLayout(5,5));
+		this.setLayout(new GridLayout(ROWS,COLS));
 
-		for(int i=0; i<5; i++){
-			for(int j=0; j<5; j++){
+		for(int i=0; i<ROWS; i++){
+			for(int j=0; j<COLS; j++){
 				buttons[i][j] = new JButton(generateRandomImage());
 				buttons[i][j].addMouseListener(this);
-				this.add(buttons[i][j]);
 			}
 		}
 
+		while(removeMatches(false));
+
+		for(int i=0; i<ROWS; i++){
+			for(int j=0; j<COLS; j++){
+				this.add(buttons[i][j]);
+			}
+		}
 
 	}
 	public void mouseClicked(MouseEvent evt){
@@ -346,14 +362,20 @@ class GameProperPanel extends JPanel implements MouseListener{
 			System.out.println(previousIndices);
 			System.out.println(indices);
 
-			//swap previously clicked and just clicked buttons
-			JButton prevClickedButton = buttons[previousIndices.get(0)][previousIndices.get(1)];
-			buttons[previousIndices.get(0)][previousIndices.get(1)] = buttons[indices.get(0)][indices.get(1)];
-			buttons[indices.get(0)][indices.get(1)] = prevClickedButton;
+			swapButtons(previousIndices, indices);
 
+			if(getMatchesFromArray(buttons[previousIndices.get(0)]).size() > 0 ||
+				getMatchesFromArray(getColumnFromButtons(previousIndices.get(1))).size() > 0 ||
+				getMatchesFromArray(buttons[indices.get(0)]).size() > 0 ||
+				getMatchesFromArray(getColumnFromButtons(indices.get(1))).size() > 0){
+					removeMatches(true);
+			} else{
+				swapButtons(previousIndices, indices);
+			}
+			
 			this.removeAll();
-			for(int i=0; i<5; i++){
-				for(int j=0; j<5; j++){
+			for(int i=0; i<ROWS; i++){
+				for(int j=0; j<COLS; j++){
 					this.add(buttons[i][j]);
 				}
 			}
@@ -368,6 +390,14 @@ class GameProperPanel extends JPanel implements MouseListener{
 	public void mouseEntered(MouseEvent e){}	
 	public void mouseExited(MouseEvent e){}	
 			
+	public void swapButtons(LinkedList<Integer> prev, LinkedList<Integer> current){
+
+		//swap previously clicked and just clicked buttons
+		JButton prevClickedButton = buttons[prev.get(0)][prev.get(1)];
+		buttons[prev.get(0)][prev.get(1)] = buttons[current.get(0)][current.get(1)];
+		buttons[current.get(0)][current.get(1)] = prevClickedButton;
+
+	}
 
 	public ImageIcon generateRandomImage(){
 		switch((new Random()).nextInt(4) + 1){
@@ -380,8 +410,8 @@ class GameProperPanel extends JPanel implements MouseListener{
 	}
 
 	public LinkedList<Integer> getIndicesOfButton(JButton[][] buttonArray, JButton button){
-		for(int i=0; i<5; i++){
-			for(int j=0; j<5; j++){
+		for(int i=0; i<ROWS; i++){
+			for(int j=0; j<COLS; j++){
 				if(button == buttonArray[i][j])
 					return new LinkedList<Integer>(Arrays.asList(i, j));
 			}
@@ -389,7 +419,156 @@ class GameProperPanel extends JPanel implements MouseListener{
 		return null;
 	}
 
+	public JButton[] getColumnFromButtons(int col){
+		JButton[] colArr = new JButton[5];
 
+		for(int i=0; i<ROWS; i++){
+			colArr[i] = buttons[i][col];
+		}
+
+		return colArr;
+	}
+
+	public LinkedList<Integer> getMatchesFromArray(JButton[] buttonArray){
+		LinkedList<Integer> list = new LinkedList<Integer>();
+
+		int cnt = 1; //number of consecutive duplicates
+
+		for(int i = 0; i < buttonArray.length-1; i++){
+			if(((ImageIcon)buttonArray[i].getIcon()).equals((ImageIcon)buttonArray[i+1].getIcon())){
+				cnt++;
+
+				if((i+1) == (buttonArray.length-1) && cnt > 2){
+					int startIndex = i - cnt + 2;
+					list.add(startIndex);
+					list.add(cnt);
+				}
+			}else{
+				if(cnt > 2){
+					int startIndex = i - cnt + 1;
+					list.add(startIndex);
+					list.add(cnt);
+				}
+				cnt = 1;
+				
+			}	
+		}
+
+		return list;
+	}
+
+	public boolean removeMatches(boolean withScore){
+
+		final Thread[] rowcheckerThread = new Thread[ROWS];
+		final Thread[] colcheckerThread = new Thread[COLS];
+
+		final Runnable[] rowchecker = new Runnable[ROWS];
+		final Runnable[] colchecker = new Runnable[COLS];
+
+		int newMatchChecker = matchChecker;
+
+	    for(int r = 0; r< ROWS; r++){ // change this so that the bigger value bet. ROWS & cols will be the basis
+
+			final LinkedList<Integer> rowMatches = getMatchesFromArray(buttons[r]);
+			final LinkedList<Integer> colMatches = getMatchesFromArray(getColumnFromButtons(r));
+
+			newMatchChecker += (rowMatches.size() / 2) + (colMatches.size() / 2);
+
+			final int temp = r;
+
+			rowchecker[r] = new Runnable() {
+	            public void run() { //for constantly receiving messages from server
+	                if(rowMatches.size() > 0){ //get matches from each row
+						for(int a = 0; a < rowMatches.size(); a++){
+							if(a % 2 == 0){ 
+								int startIndex = rowMatches.get(a);
+								int endIndex = startIndex + rowMatches.get(a+1) -1;
+
+								//replace the duplicates with new images
+								for(int b = startIndex; b <= endIndex; b++){
+									buttons[temp][b].setEnabled(false);
+								}
+								try{
+									if(withScore) Thread.sleep(1000);
+								}catch(InterruptedException e){}
+								for(int b = startIndex; b <= endIndex; b++){
+									buttons[temp][b].setIcon(generateRandomImage());
+								}
+								removeAll();
+								for(int b = startIndex; b <= endIndex; b++){
+									buttons[b][temp].setEnabled(true);
+								}
+								for(int i=0; i<ROWS; i++){
+									for(int j=0; j<COLS; j++){
+										add(buttons[i][j]);
+									}
+								}
+								revalidate();
+								repaint();
+							}
+						}
+					}
+	            }
+	        };
+
+	        colchecker[r] = new Runnable() {
+	            public void run() { //for constantly receiving messages from server
+	                if(colMatches.size() > 0){ //get matches from each column
+						for(int a = 0; a < colMatches.size(); a++){
+							if(a % 2 == 0){ 
+								int startIndex = colMatches.get(a);
+								int endIndex = startIndex + colMatches.get(a+1) -1;
+
+								//replace the duplicates with new images
+								for(int b = startIndex; b <= endIndex; b++){
+									buttons[b][temp].setEnabled(false);
+								}
+								try{
+									if(withScore) Thread.sleep(1000);
+								}catch(InterruptedException e){}
+								for(int b = startIndex; b <= endIndex; b++){
+									buttons[b][temp].setIcon(generateRandomImage());
+								}
+								removeAll();
+								for(int b = startIndex; b <= endIndex; b++){
+									buttons[b][temp].setEnabled(true);
+								}
+								for(int i=0; i<ROWS; i++){
+									for(int j=0; j<COLS; j++){
+										add(buttons[i][j]);
+									}
+								}
+								revalidate();
+								repaint();
+							}
+						}
+					}
+	            }
+	        };
+
+	        rowcheckerThread[r] = new Thread(rowchecker[r]);
+	        colcheckerThread[r] = new Thread(colchecker[r]);
+
+	        rowcheckerThread[r].start();
+	        colcheckerThread[r].start();
+	    }
+		
+		try{
+			for(int i = 0; i<ROWS; i+=1){
+				rowcheckerThread[i].join();
+				colcheckerThread[i].join();
+			} 
+		}catch(InterruptedException e){
+			e.printStackTrace();
+		}
+
+		if(matchChecker == newMatchChecker){
+			return false;
+		}else{
+			matchChecker = newMatchChecker;
+			return true;
+		}
+	}
 
 
 	public void paintComponent(Graphics g) {
