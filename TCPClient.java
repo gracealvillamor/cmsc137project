@@ -2,7 +2,16 @@ import java.net.*;
 import java.io.*;
 import java.util.*;
 import java.awt.*;
-import javax.swing.*;
+import javax.swing.JButton;
+import javax.swing.JTextField;
+import javax.swing.JTextArea;
+import javax.swing.JScrollPane;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
+import javax.swing.ImageIcon;
 import java.awt.event.*;
 import java.awt.image.*;
 import javax.imageio.*;
@@ -101,6 +110,8 @@ interface Constants {
 	 */
 	public static final int ROWS=5;
 	public static final int COLS=5;
+    // public final Timer stopwatch;
+    public final int SEC = 5;
 }
 
 class DataModel{
@@ -315,7 +326,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 
   }
 }
-class GameProperPanel extends JPanel implements MouseListener, Constants{
+class GameProperPanel extends JPanel implements ActionListener, Constants{
 	final JButton[][] buttons = new JButton[ROWS][COLS];
 
 	ImageIcon i1 = new ImageIcon("i1.png");
@@ -334,7 +345,7 @@ class GameProperPanel extends JPanel implements MouseListener, Constants{
 		for(int i=0; i<ROWS; i++){
 			for(int j=0; j<COLS; j++){
 				buttons[i][j] = new JButton(generateRandomImage());
-				buttons[i][j].addMouseListener(this);
+				buttons[i][j].addActionListener(this);
 			}
 		}
 
@@ -347,17 +358,17 @@ class GameProperPanel extends JPanel implements MouseListener, Constants{
 		}
 
 	}
-	public void mouseClicked(MouseEvent evt){
+	public void actionPerformed(ActionEvent evt){
 		clicks += 1;
 
 		
 
 		// buttons[indices.get(0)][indices.get(1)];
 		if(clicks == 1){
-			previousIndices = getIndicesOfButton(buttons, (JButton)evt.getComponent());
+			previousIndices = getIndicesOfButton(buttons, (JButton)evt.getSource());
 		}
 		else{
-			LinkedList<Integer> indices = getIndicesOfButton(buttons, (JButton)evt.getComponent());
+			LinkedList<Integer> indices = getIndicesOfButton(buttons, (JButton)evt.getSource());
 
 			System.out.println(previousIndices);
 			System.out.println(indices);
@@ -368,7 +379,7 @@ class GameProperPanel extends JPanel implements MouseListener, Constants{
 				getMatchesFromArray(getColumnFromButtons(previousIndices.get(1))).size() > 0 ||
 				getMatchesFromArray(buttons[indices.get(0)]).size() > 0 ||
 				getMatchesFromArray(getColumnFromButtons(indices.get(1))).size() > 0){
-					removeMatches(true);
+					while(removeMatches(true));
 			} else{
 				swapButtons(previousIndices, indices);
 			}
@@ -384,11 +395,6 @@ class GameProperPanel extends JPanel implements MouseListener, Constants{
 			clicks = 0;
 		} 
 	}
-	
-	public void mousePressed(MouseEvent e){}	
-	public void mouseReleased(MouseEvent e){}	
-	public void mouseEntered(MouseEvent e){}	
-	public void mouseExited(MouseEvent e){}	
 			
 	public void swapButtons(LinkedList<Integer> prev, LinkedList<Integer> current){
 
@@ -467,6 +473,9 @@ class GameProperPanel extends JPanel implements MouseListener, Constants{
 
 		int newMatchChecker = matchChecker;
 
+		// final Timer[][] stopwatch = new Timer[ROWS+COLS][ROWS];
+		
+
 	    for(int r = 0; r< ROWS; r++){ // change this so that the bigger value bet. ROWS & cols will be the basis
 
 			final LinkedList<Integer> rowMatches = getMatchesFromArray(buttons[r]);
@@ -488,16 +497,21 @@ class GameProperPanel extends JPanel implements MouseListener, Constants{
 								for(int b = startIndex; b <= endIndex; b++){
 									buttons[temp][b].setEnabled(false);
 								}
-								try{
-									if(withScore) Thread.sleep(1000);
-								}catch(InterruptedException e){}
+								// stopwatch[temp][a/2] = new Timer(SEC * 1000, new EnableListener(buttons));
+								// stopwatch[temp][a/2].setRepeats(false);
+								// stopwatch[temp][a/2].start();
+
+								final Timer stopwatch = new Timer(SEC * 1000, new EnableListener(buttons));
+								stopwatch.setRepeats(false);
+								stopwatch.start();
+								// new Timer(SEC * 1000, new EnableListener(buttons)).start();
+								// stopwatch[temp].join();
 								for(int b = startIndex; b <= endIndex; b++){
 									buttons[temp][b].setIcon(generateRandomImage());
 								}
+
+								
 								removeAll();
-								for(int b = startIndex; b <= endIndex; b++){
-									buttons[b][temp].setEnabled(true);
-								}
 								for(int i=0; i<ROWS; i++){
 									for(int j=0; j<COLS; j++){
 										add(buttons[i][j]);
@@ -523,16 +537,19 @@ class GameProperPanel extends JPanel implements MouseListener, Constants{
 								for(int b = startIndex; b <= endIndex; b++){
 									buttons[b][temp].setEnabled(false);
 								}
-								try{
-									if(withScore) Thread.sleep(1000);
-								}catch(InterruptedException e){}
+								// stopwatch[temp + ROWS][a/2] = new Timer(SEC * 1000, new EnableListener(buttons));
+								// stopwatch[temp + ROWS][a/2].setRepeats(false);
+								// stopwatch[temp + ROWS][a/2].start();
+
+								final Timer stopwatch = new Timer(SEC * 1000, new EnableListener(buttons));
+								stopwatch.setRepeats(false);
+								stopwatch.start();
+								// new Timer(SEC * 1000, new EnableListener(buttons)).start();
+								// stopwatch[temp + ROWS].join();
 								for(int b = startIndex; b <= endIndex; b++){
 									buttons[b][temp].setIcon(generateRandomImage());
 								}
 								removeAll();
-								for(int b = startIndex; b <= endIndex; b++){
-									buttons[b][temp].setEnabled(true);
-								}
 								for(int i=0; i<ROWS; i++){
 									for(int j=0; j<COLS; j++){
 										add(buttons[i][j]);
@@ -570,7 +587,26 @@ class GameProperPanel extends JPanel implements MouseListener, Constants{
 		}
 	}
 
+	class EnableListener implements ActionListener{
+		JComponent[][] target = new JComponent[ROWS][COLS];
 
+		public EnableListener(JComponent[][] target){
+			for(int i =0; i < ROWS; i++){
+				for(int j = 0; j < COLS; j++){
+					this.target[i][j] = target[i][j];
+				}
+			}
+		}
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            for(int i =0; i < ROWS; i++){
+				for(int j = 0; j < COLS; j++){
+					this.target[i][j].setEnabled(true);
+				}
+			}
+        }
+	}
 	public void paintComponent(Graphics g) {
 		Graphics2D g2d = (Graphics2D)g;
 
