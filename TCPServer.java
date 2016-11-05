@@ -11,7 +11,7 @@ public class TCPServer{
 	
 	public void run() throws Exception{
 		final int numplayers = 2; //number of players; must be changed
-		ServerSocket SERVER = new ServerSocket(60052); //port to connect to
+		ServerSocket SERVER = new ServerSocket(60010); //port to connect to
 
 		Socket[] SOCK = new Socket[numplayers];
 		InputStreamReader[] reader = new InputStreamReader[numplayers];
