@@ -506,11 +506,26 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 								stopwatch.start();
 								// new Timer(SEC * 1000, new EnableListener(buttons)).start();
 								// stopwatch[temp].join();
-								for(int b = startIndex; b <= endIndex; b++){
+
+								for(int i = endIndex, j = startIndex-1; j >= 0; i--, j--){
+									buttons[temp][i].setIcon(buttons[temp][j].getIcon());
+								}
+
+								for(int b = endIndex - startIndex; b >= 0; b--){
 									buttons[temp][b].setIcon(generateRandomImage());
 								}
 
-								
+								for(int i = startIndex; i <= endIndex; i++){
+									for(int j = temp; j > 0; j--){
+										buttons[j][i].setIcon(buttons[j-1][i].getIcon());
+									}
+									buttons[0][i].setIcon(generateRandomImage());
+								}
+								// for(int b = startIndex; b <= endIndex; b++){
+								// 	buttons[temp][b].setIcon(generateRandomImage());
+								// }
+
+
 								removeAll();
 								for(int i=0; i<ROWS; i++){
 									for(int j=0; j<COLS; j++){
@@ -546,9 +561,18 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 								stopwatch.start();
 								// new Timer(SEC * 1000, new EnableListener(buttons)).start();
 								// stopwatch[temp + ROWS].join();
-								for(int b = startIndex; b <= endIndex; b++){
+								// for(int b = startIndex; b <= endIndex; b++){
+								// 	buttons[b][temp].setIcon(generateRandomImage());
+								// }
+
+								for(int i = endIndex, j = startIndex-1; j >= 0; i--, j--){
+									buttons[i][temp].setIcon(buttons[j][temp].getIcon());
+								}
+
+								for(int b = endIndex - startIndex; b >= 0; b--){
 									buttons[b][temp].setIcon(generateRandomImage());
 								}
+
 								removeAll();
 								for(int i=0; i<ROWS; i++){
 									for(int j=0; j<COLS; j++){
