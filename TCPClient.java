@@ -210,6 +210,7 @@ class UDPClient implements Constants{
 
 					        model.setScores(players);
 					        model.getScorePanel().updateScores();
+					        model.getPlayersPanel().updatePlayers();
 						}
 					}
 				}
@@ -232,6 +233,7 @@ class DataModel implements Constants{
 	private TCPClient tcpClient;
 	private GameProperPanel game;
 	private ScorePanel scorePanel;
+	private PlayersPanel playersPanel;
 	private Map players;
 
 	public DataModel(){
@@ -297,6 +299,12 @@ class DataModel implements Constants{
 	}
 	public ScorePanel getScorePanel(){
 		return this.scorePanel;
+	}
+	public void setPlayersPanel(PlayersPanel panel){
+		this.playersPanel = panel;
+	}
+	public PlayersPanel getPlayersPanel(){
+		return this.playersPanel;
 	}
 	public void setUDPClient(UDPClient udpClient){
 		this.udpClient = udpClient;
@@ -403,14 +411,45 @@ class MenuPanel extends JPanel{
 		g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON); //to avoid pixelation
 	}
 }
+class PlayersPanel extends JPanel{
+	private DataModel model;
+	JTextArea playersArea;
+
+	public PlayersPanel(DataModel model){
+		this.model = model;
+		// this.setBackground(Color.RED);
+		
+
+		playersArea = new JTextArea(10, 5);
+		this.add(playersArea);
+	}
+	public void updatePlayers(){
+		Map<String, Integer> players = model.getScores();
+	    
+	    playersArea.setText("");
+	    for(Map.Entry<String, Integer> entry : players.entrySet()){
+			playersArea.append(entry.getKey() + "\n");
+        }
+
+		this.revalidate();
+		this.repaint();
+	}
+	public void paintComponent(Graphics g) {
+	  	Graphics2D g2d = (Graphics2D)g;
+    	
+    	this.setLocation(680,400);
+    	
+
+  	}
+}
 class ScorePanel extends JPanel{
 	private DataModel model;
-	private Image img;
 	JTextArea scoreArea;
 
 	public ScorePanel(DataModel model){
 		this.model = model;
-		this.setBackground(Color.RED);
+		// this.setBackground(Color.RED);
+		
 
 		scoreArea = new JTextArea(10, 5);
 		this.add(scoreArea);
@@ -430,21 +469,7 @@ class ScorePanel extends JPanel{
 	}
 	public void paintComponent(Graphics g) {
 	  	Graphics2D g2d = (Graphics2D)g;
-    
-    	g.drawImage(img, 0, 0, null);
-
-    	Map<String, Integer> scores = model.getScores();
-    	int i = 0;
-	    
-	    for(Map.Entry<String, Integer> entry : scores.entrySet()){
-			g.drawString(entry.getKey() + "\t" + entry.getValue(), 20, 20+i);
-            i += 20;
-        }
-
-
-		// this.setSize(500,500);
-		this.setLocation(80,400);
-
+	  	this.setLocation(80,400);
   	}
 
 }
@@ -516,7 +541,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 			final Runnable checker = new Runnable() {
 	            public void run() { //for constantly receiving messages from server
 	                while(true){
-						// System.out.println("yes");
+						System.out.println("yes");
 						if(tcpClient.isFinished()) break;
 						String msg = model.getLatestTCPMessage();
 						if(msg != null){
@@ -531,8 +556,10 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 			checkerThread.start();
 			ScorePanel scorePanel = new ScorePanel(model);
 			model.setScorePanel(scorePanel);
+			PlayersPanel playersPanel = new PlayersPanel(model);
+			model.setPlayersPanel(playersPanel);
 			System.out.println("\t\t\tBEFORE");
-			// tcpClient.run(this.model);
+			tcpClient.run(this.model);
 			System.out.println("\t\t\tAFTER");
 			udpClient.run(this.model);
 			
@@ -544,6 +571,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 			model.setGame(gameProper);
 			this.add(gameProper, BorderLayout.CENTER);
 			this.add(scorePanel, BorderLayout.CENTER);
+			this.add(playersPanel, BorderLayout.CENTER);
 			this.revalidate();
 			this.repaint();
 		}catch(Exception ex){}
@@ -617,29 +645,36 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 			System.out.println(previousIndices);
 			System.out.println(indices);
 
-			swapButtons(previousIndices, indices);
-
-			if(getMatchesFromArray(buttons[previousIndices.get(0)]).size() > 0 ||
-				getMatchesFromArray(getColumnFromButtons(previousIndices.get(1))).size() > 0 ||
-				getMatchesFromArray(buttons[indices.get(0)]).size() > 0 ||
-				getMatchesFromArray(getColumnFromButtons(indices.get(1))).size() > 0){
-					// while(removeMatches(true));
-					String stringIndices = "SWAP:" + previousIndices.get(0) + ":" +previousIndices.get(1);
-					stringIndices += "/" + indices.get(0) + ":" +indices.get(1) + ":" + model.getNameOfClient();
-					this.udpClient.send(stringIndices);
-			} else{
+			if(((previousIndices.get(0) == indices.get(0)) && (Math.abs(previousIndices.get(1) - indices.get(1)) == 1))
+				|| ((previousIndices.get(1) == indices.get(1)) && (Math.abs(previousIndices.get(0) - indices.get(0)) == 1))){ //allow swapping of adjacent buttons only
 				swapButtons(previousIndices, indices);
-			}
-			
-			this.removeAll();
-			for(int i=0; i<ROWS; i++){
-				for(int j=0; j<COLS; j++){
-					this.add(buttons[i][j]);
+
+				if(getMatchesFromArray(buttons[previousIndices.get(0)]).size() > 0 ||
+					getMatchesFromArray(getColumnFromButtons(previousIndices.get(1))).size() > 0 ||
+					getMatchesFromArray(buttons[indices.get(0)]).size() > 0 ||
+					getMatchesFromArray(getColumnFromButtons(indices.get(1))).size() > 0){
+						// while(removeMatches(true));
+						String stringIndices = "SWAP:" + previousIndices.get(0) + ":" +previousIndices.get(1);
+						stringIndices += "/" + indices.get(0) + ":" +indices.get(1) + ":" + model.getNameOfClient();
+						this.udpClient.send(stringIndices);
+				} else{
+					swapButtons(previousIndices, indices);
 				}
+				
+				this.removeAll();
+				for(int i=0; i<ROWS; i++){
+					for(int j=0; j<COLS; j++){
+						this.add(buttons[i][j]);
+					}
+				}
+				this.revalidate();
+				this.repaint();
+			
+				clicks = 0;
 			}
-			this.revalidate();
-			this.repaint();
-			clicks = 0;
+
+			clicks = 1; //clicked a button that is not adjacent
+			previousIndices = getIndicesOfButton(buttons, (JButton)evt.getSource());
 		} 
 	}
 	
