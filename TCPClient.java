@@ -50,7 +50,7 @@ public class TCPClient{
 		            public void run() { //for constantly receiving messages from client
 		                while(true){
 		                	try{
-								String clientMessage = model.getMessageToSend();
+								String clientMessage = model.getTCPMessageToSend();
 
 								System.out.println("\" " + clientMessage + "\" ");
 								if(clientMessage != null ){
@@ -58,7 +58,7 @@ public class TCPClient{
 									System.out.println("Sending... \t" + clientMessage);
 									OUT.println(clientMessage);
 
-									model.sendMessage(null);
+									model.sendTCPMessage(null);
 
 									if((clientMessage.equals("quit"))){ //closes readers if the client has already quit
 										IN.close();
@@ -85,7 +85,7 @@ public class TCPClient{
 		                	try{
 		                		String serverMessage = IN.readLine();
 		                		System.out.println(serverMessage);
-		                		model.putLatestMessage(serverMessage);
+		                		model.putTCPLatestMessage(serverMessage);
 		                	}catch(IOException e){}
 		                	
 		                }
@@ -185,7 +185,13 @@ class UDPClient implements Constants{
 								}
 								System.out.println();
 							}
-						}			
+						}else if(serverData.startsWith("REMOVEROW")){
+							String[] data = serverData.split(" ");
+							model.getGame().removeRow(Integer.parseInt(data[1]), Integer.parseInt(data[2]), Integer.parseInt(data[3]), data[4]);
+						}else if(serverData.startsWith("REMOVECOL")){
+							String[] data = serverData.split(" ");
+							model.getGame().removeCol(Integer.parseInt(data[1]), Integer.parseInt(data[2]), Integer.parseInt(data[3]), data[4]);
+						}
 					}
 				}
 		    }
@@ -201,10 +207,12 @@ class UDPClient implements Constants{
 
 class DataModel implements Constants{
 	private String name = "";
-	private String latestMessage;
+	private String latestTCPMessage, latestUDPMessage;
 	private String messageToSend;
 	private int[][] board;
-
+	private UDPClient udpClient;
+	private TCPClient tcpClient;
+	private GameProperPanel game;
 
 	public DataModel(){
 		this.name = getNameOfClient();
@@ -216,18 +224,26 @@ class DataModel implements Constants{
 	public String getNameOfClient(){
 		return this.name;
 	}
-	public void putLatestMessage(String message){
-		this.latestMessage = message;
+	public void putTCPLatestMessage(String message){
+		this.latestTCPMessage = message;
 	}
-	public String getLatestMessage(){
-		String message = this.latestMessage;
-		this.latestMessage = null;
+	public String getLatestTCPMessage(){
+		String message = this.latestTCPMessage;
+		this.latestTCPMessage = null;
 		return message;
 	}
-	public void sendMessage(String message){
+	public void putUDPLatestMessage(String message){
+		this.latestUDPMessage = message;
+	}
+	public String getLatestUDPMessage(){
+		String message = this.latestUDPMessage;
+		this.latestUDPMessage = null;
+		return message;
+	}
+	public void sendTCPMessage(String message){
 		this.messageToSend = message;
 	}
-	public String getMessageToSend(){
+	public String getTCPMessageToSend(){
 		return this.messageToSend;
 	}
 	public void setInitialBoard(String initialBoard){
@@ -239,13 +255,6 @@ class DataModel implements Constants{
 				cnt++;
 			}
 		}
-		System.out.println("this.board");
-		for(int i = 0; i<ROWS; i++){
-			for(int j = 0; j<COLS; j++){
-				System.out.print(this.board[i][j] + " ");
-			}
-			System.out.println();
-		}
 		System.out.println("getInitialBoard");
 		for(int i = 0; i<ROWS; i++){
 			for(int j = 0; j<COLS; j++){
@@ -256,6 +265,24 @@ class DataModel implements Constants{
 	}
 	public int[][] getInitialBoard(){
 		return this.board;
+	}
+	public void setGame(GameProperPanel game){
+		this.game = game;
+	}
+	public GameProperPanel getGame(){
+		return this.game;
+	}
+	public void setUDPClient(UDPClient udpClient){
+		this.udpClient = udpClient;
+	}
+	public UDPClient getUDPclient(){
+		return this.udpClient;
+	}
+	public void setTCPClient(TCPClient tcpClient){
+		this.tcpClient = tcpClient;
+	}
+	public TCPClient getTCPclient(){
+		return this.tcpClient;
 	}
 }
 
@@ -384,7 +411,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 		        if (fromUser != null) {
 		            //We append the text from the user
 		            chatArea.append(model.getNameOfClient() + ": " + fromUser + "\n");
-		 			model.sendMessage(fromUser);
+		 			model.sendTCPMessage(fromUser);
 		 			System.out.println("\n\n\n" + chatArea + "\n\n\n");
 		            //The pane auto-scrolls with each new response added
 		            chatArea.setCaretPosition(chatArea.getDocument().getLength());
@@ -403,6 +430,8 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 		TCPClient tcpClient = new TCPClient();
 		UDPClient udpClient = new UDPClient();
 
+		this.model.setTCPClient(tcpClient);
+		this.model.setUDPClient(udpClient);
 		try{
 			System.out.println("!!!!!NAME!!!!!!\t" + this.model.getNameOfClient());
 
@@ -411,7 +440,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 	                while(true){
 						System.out.println("yes");
 						if(tcpClient.isFinished()) break;
-						String msg = model.getLatestMessage();
+						String msg = model.getLatestTCPMessage();
 						if(msg != null){
 							chatArea.append(msg + "\n");
 						}
@@ -432,6 +461,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 
 			System.out.println("READY NA!!!");
 			gameProper = new GameProperPanel(model);
+			model.setGame(gameProper);
 			this.add(gameProper, BorderLayout.CENTER);
 			this.revalidate();
 			this.repaint();
@@ -453,12 +483,14 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
   }
 }
 class GameProperPanel extends JPanel implements ActionListener, Constants{
-	final JButton[][] buttons = new JButton[ROWS][COLS];
+	private final JButton[][] buttons = new JButton[ROWS][COLS];
 
-	ImageIcon i1 = new ImageIcon("i1.png");
-	ImageIcon i2 = new ImageIcon("i2.png");
-	ImageIcon i3 = new ImageIcon("i3.png");
-	ImageIcon i4 = new ImageIcon("i4.png");
+	private final ImageIcon i1 = new ImageIcon("i1.png");
+	private final ImageIcon i2 = new ImageIcon("i2.png");
+	private final ImageIcon i3 = new ImageIcon("i3.png");
+	private final ImageIcon i4 = new ImageIcon("i4.png");
+
+	private UDPClient udpClient;
 
 	int clicks = 0;
 	LinkedList<Integer> previousIndices;
@@ -468,6 +500,7 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 	public GameProperPanel(DataModel model){
 		System.out.println("HUY POTA");
 		this.setLayout(new GridLayout(ROWS,COLS));
+		this.udpClient = model.getUDPclient();
 		// while(model.getNameOfClient().equals(""));
 		for(int i=0; i<ROWS; i++){
 			for(int j=0; j<COLS; j++){
@@ -507,7 +540,10 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 				getMatchesFromArray(getColumnFromButtons(previousIndices.get(1))).size() > 0 ||
 				getMatchesFromArray(buttons[indices.get(0)]).size() > 0 ||
 				getMatchesFromArray(getColumnFromButtons(indices.get(1))).size() > 0){
-					while(removeMatches(true));
+					// while(removeMatches(true));
+					String stringIndices = "SWAP " + previousIndices.get(0) + " " +previousIndices.get(1);
+					stringIndices += "/" + indices.get(0) + " " +indices.get(1);
+					this.udpClient.send(stringIndices);
 			} else{
 				swapButtons(previousIndices, indices);
 			}
@@ -523,7 +559,14 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 			clicks = 0;
 		} 
 	}
-			
+	
+	public void setBoard(int[][] board){
+		for(int i=0; i<ROWS; i++){
+			for(int j=0; j<COLS; j++){
+				buttons[i][j].setIcon(generateImage(board[i][j]));
+			}
+		}
+	}
 	public void swapButtons(LinkedList<Integer> prev, LinkedList<Integer> current){
 
 		//swap previously clicked and just clicked buttons
@@ -599,6 +642,44 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 		}
 
 		return list;
+	}
+
+	public int[][] getBoardFromString(String board){
+		int[][] retBoard = new int[ROWS][COLS];
+
+		int cnt = 0;
+		for(int i = 0; i < ROWS; i++){
+			for(int j = 0; j < COLS; j++){
+				retBoard[i][j] = Character.getNumericValue(board.charAt(cnt)); //conver thus to freaking int
+				cnt++;
+			}
+		}
+
+		return retBoard;
+	}
+
+	public void removeRow(int row, int startIndex, int endIndex, String board){
+		for(int b = startIndex; b <= endIndex; b++){
+			buttons[row][b].setEnabled(false);
+		}
+
+		final Timer stopwatch = new Timer(SEC * 1000, new EnableListener(buttons));
+		stopwatch.setRepeats(false);
+		stopwatch.start();
+
+		setBoard(getBoardFromString(board));
+	}
+
+	public void removeCol(int col, int startIndex, int endIndex, String board){
+		for(int b = startIndex; b <= endIndex; b++){
+			buttons[b][col].setEnabled(false);
+		}
+
+		final Timer stopwatch = new Timer(SEC * 1000, new EnableListener(buttons));
+		stopwatch.setRepeats(false);
+		stopwatch.start();
+
+		setBoard(getBoardFromString(board));
 	}
 
 	public boolean removeMatches(boolean withScore){

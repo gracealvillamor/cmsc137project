@@ -129,6 +129,10 @@ class UDPServer implements Constants{
 			ioe.printStackTrace();
 		}
 	}
+
+	public UDPServer getSelf(){
+		return this;
+	}
 	
 	public void run() throws Exception{
         
@@ -186,21 +190,32 @@ class UDPServer implements Constants{
 							//System.out.println("Game State: IN_PROGRESS");
 							  
 							//Player data was received!
-							if (playerData.startsWith("PLAYER")){
+							if (playerData.startsWith("SWAP")){
 								//Tokenize:
 								//The format: PLAYER <player name> <x> <y>
-								String[] playerInfo = playerData.split(" ");					  
-								String pname =playerInfo[1];
-								int x = Integer.parseInt(playerInfo[2].trim());
-								int y = Integer.parseInt(playerInfo[3].trim());
-								//Get the player from the game state
-								NetPlayer player=(NetPlayer)game.getPlayers().get(pname);					  
-								player.setX(x);
-								player.setY(y);
-								//Update the game state
-								game.update(pname, player);
-								//Send to all the updated game state
-								broadcast(game.toString());
+								String[] playerInfo = playerData.split("/");
+								
+								String[] stringPrevIndices = playerInfo[0].split(" ");
+								LinkedList<Integer> prevIndices = new LinkedList<Integer>(Arrays.asList(Integer.parseInt(stringPrevIndices[1]), Integer.parseInt(stringPrevIndices[2]))); 
+								
+								String[] stringIndices = playerInfo[1].split(" ");
+								LinkedList<Integer> indices = new LinkedList<Integer>(Arrays.asList(Integer.parseInt(stringIndices[0]), Integer.parseInt(stringIndices[1]))); 
+
+								game.swapButtons(getSelf(), prevIndices, indices);
+
+								// while(game.removeMatches(true)) broadcast("");//broadcast actions;
+
+								// String pname =playerInfo[1];
+								// int x = Integer.parseInt(playerInfo[2].trim());
+								// int y = Integer.parseInt(playerInfo[3].trim());
+								// //Get the player from the game state
+								// NetPlayer player=(NetPlayer)game.getPlayers().get(pname);					  
+								// player.setX(x);
+								// player.setY(y);
+								// //Update the game state
+								// game.update(pname, player);
+								// //Send to all the updated game state
+								// broadcast(game.toString());
 							}
 							break;
 					}
@@ -246,11 +261,23 @@ class GameState implements Constants{
 			}
 		}
 
-		while(removeMatches(false));
+		while(removeMatches(null, false));
 
 		for(int i = 0; i < this.rows; i++){
 			for(int j = 0; j < this.cols; j++){
 				System.out.print(this.board[i][j] + " ");
+				retval += this.board[i][j];
+			}
+			System.out.println();
+		}
+
+		return retval;
+	}
+	public String stringify(){
+		String retval = "";
+
+		for(int i = 0; i < this.rows; i++){
+			for(int j = 0; j < this.cols; j++){
 				retval += this.board[i][j];
 			}
 			System.out.println();
@@ -294,7 +321,17 @@ class GameState implements Constants{
 
 		return list;
 	}
-	public boolean removeMatches(boolean withScore){
+	public void swapButtons(UDPServer udpServer, LinkedList<Integer> prev, LinkedList<Integer> current){
+
+		//swap previously clicked and just clicked buttons
+		int prevClickedButton = this.board[prev.get(0)][prev.get(1)];
+		this.board[prev.get(0)][prev.get(1)] = this.board[current.get(0)][current.get(1)];
+		this.board[current.get(0)][current.get(1)] = prevClickedButton;
+
+		while(removeMatches(udpServer, true));
+
+	}
+	public boolean removeMatches(UDPServer udpServer, boolean withScore){
 
 		final Thread[] rowcheckerThread = new Thread[ROWS];
 		final Thread[] colcheckerThread = new Thread[COLS];
@@ -322,12 +359,15 @@ class GameState implements Constants{
 								int startIndex = rowMatches.get(a);
 								int endIndex = startIndex + rowMatches.get(a+1) -1;
 
+								
 								for(int i = startIndex; i <= endIndex; i++){
 									for(int j = temp; j > 0; j--){
 										board[j][i] = board[j-1][i];
 									}
 									board[0][i] = (new Random()).nextInt(4) + 1;
 								}
+								udpServer.broadcast("REMOVEROW " + temp + " " + startIndex + " " + endIndex + " " + stringify());
+								// udpServer.broadcast("NEWBOARD " + stringify());
 							}
 						}
 					}
@@ -342,6 +382,7 @@ class GameState implements Constants{
 								int startIndex = colMatches.get(a);
 								int endIndex = startIndex + colMatches.get(a+1) -1;
 								
+								
 								for(int i = endIndex, j = startIndex-1; j >= 0; i--, j--){
 									board[i][temp] = board[j][temp];
 								}
@@ -349,6 +390,8 @@ class GameState implements Constants{
 								for(int b = endIndex - startIndex; b >= 0; b--){
 									board[b][temp] = (new Random()).nextInt(4) + 1;
 								}
+								udpServer.broadcast("REMOVECOL " + temp + " " + startIndex + " " + endIndex + " " + stringify());
+								// udpServer.broadcast("NEWBOARD " + stringify());
 							}
 						}
 					}
