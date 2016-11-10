@@ -9,11 +9,12 @@ public class TCPServer implements Constants{
 		TCPServer tcpServer = new TCPServer();
 		UDPServer udpServer = new UDPServer();
 
-		udpServer.run();
 		tcpServer.run();
+		udpServer.run();
 	}
 	
-	public void run() throws Exception{
+public void run() throws Exception{
+
 		// final int numplayers = 2; //number of players; must be changed
 		ServerSocket SERVER = new ServerSocket(60010); //port to connect to
 
@@ -24,64 +25,77 @@ public class TCPServer implements Constants{
 		final Runnable[] receiver = new Runnable[numplayers];
 		final Runnable[] checker = new Runnable[numplayers];
 		String[] name = new String[numplayers];
-		// CountDownLatch doneSignal = new CountDownLatch(numplayers);
-		// CountDownLatch latch = new CountDownLatch(numplayers);
+
+		final Runnable tcpRunnable = new Runnable() {
+            public void run() {
+					// CountDownLatch doneSignal = new CountDownLatch(numplayers);
+					// CountDownLatch latch = new CountDownLatch(numplayers);
 
 
-		for(int i = 0; i<numplayers; i+=1){
-			SOCK[i] = SERVER.accept();		
-			reader[i] = new InputStreamReader(SOCK[i].getInputStream());
-			IN[i] = new BufferedReader(reader[i]);
-			OUT[i] = new PrintStream(SOCK[i].getOutputStream());
-			name[i] = IN[i].readLine();
-			System.out.println("!!!NAME!!! " + name[i]);
-			final int f = i; //current iteration
-			receiver[i] = new Runnable(){
-				public void run(){
-					try{
-						while(true){
-							try{
-								String message = IN[f].readLine(); //read message from client
-								System.out.println(message);
-								if(message.equals("quit")){ // quits the client
-									OUT[f].println();
-									break;
-								} 
-								if(message != null){ //broadcasts message of client
-									for(int j = 0; j<numplayers; j+=1){
-											if(j!=f) OUT[j].println(name[f] + ": " + message);
+					for(int i = 0; i<numplayers; i+=1){
+						try{
+							SOCK[i] = SERVER.accept();
+							reader[i] = new InputStreamReader(SOCK[i].getInputStream());
+							IN[i] = new BufferedReader(reader[i]);
+							OUT[i] = new PrintStream(SOCK[i].getOutputStream());
+							name[i] = IN[i].readLine();		
+						}catch(IOException e){}
+						System.out.println("!!!NAME!!! " + name[i]);
+						final int f = i; //current iteration
+						receiver[i] = new Runnable(){
+							public void run(){
+								try{
+									while(true){
+										try{
+											String message = IN[f].readLine(); //read message from client
+											System.out.println(message);
+											if(message.equals("quit")){ // quits the client
+												OUT[f].println();
+												break;
+											} 
+											if(message != null){ //broadcasts message of client
+												for(int j = 0; j<numplayers; j+=1){
+														if(j!=f) OUT[j].println(name[f] + ": " + message);
+												}
+											}
+										}catch(IOException e){}
+										
 									}
-								}
-							}catch(IOException e){}
-							
-						}
-						//latch.countDown();
-					}catch(Exception e) {}
+									//latch.countDown();
+								}catch(Exception e) {}
+								
+
+							}
+						};
+					}
 					
+					final Thread[] receiverThread = new Thread[numplayers];
 
-				}
-			};
-		}
-		
-		final Thread[] receiverThread = new Thread[numplayers];
+					for(int i = 0; i<numplayers; i+=1){
+						receiverThread[i] = new Thread(receiver[i]);
+						receiverThread[i].start();
+						
+					}
 
-		for(int i = 0; i<numplayers; i+=1){
-			receiverThread[i] = new Thread(receiver[i]);
-			receiverThread[i].start();
-			
-		}
+					//doneSignal.await();
 
-		//doneSignal.await();
+					try{
+						//waits for all threads to terminate
+						for(int i = 0; i<numplayers; i+=1) receiverThread[i].join();
+					}catch(InterruptedException e){}
 
-		//waits for all threads to terminate
-		for(int i = 0; i<numplayers; i+=1) receiverThread[i].join();
-
-		for(int i = 0; i<numplayers; i+=1){ 
-			OUT[i].close();
-			IN[i].close();
-			SOCK[i].close();
-		}
-		SERVER.close();
+					try{
+						for(int i = 0; i<numplayers; i+=1){ 
+							OUT[i].close();
+							IN[i].close();
+							SOCK[i].close();
+						}
+						SERVER.close();
+					}catch(IOException e){}
+            }
+        };
+        final Thread tcpThread = new Thread(tcpRunnable);
+        tcpThread.start();
 		
 	}
 }
@@ -117,84 +131,86 @@ class UDPServer implements Constants{
 	}
 	
 	public void run() throws Exception{
+        
+        serverSocket = new DatagramSocket(60011);
 
-		serverSocket = new DatagramSocket(60011);
-		// serverSocket.setSoTimeout(1000);
+		final Runnable udpRunnable = new Runnable() {
+            public void run() {
+				// serverSocket.setSoTimeout(1000);
 
-		game = new GameState();
-		int gameStage = WAITING_FOR_PLAYERS;
+				game = new GameState();
+				int gameStage = WAITING_FOR_PLAYERS;
 
-		while(true){System.out.println("PASOK BA");
-			byte[] buf = new byte[256];
-			DatagramPacket packet = new DatagramPacket(buf, buf.length);
+				while(true){System.out.println("PASOK BA");
+					byte[] buf = new byte[256];
+					DatagramPacket packet = new DatagramPacket(buf, buf.length);
 
-			serverSocket.receive(packet);
+					try{
+		     			serverSocket.receive(packet);
+					}catch(IOException e){}
 
-			String playerData = new String(buf);
-			System.out.println(playerData);
-			playerData = playerData.trim();
+					String playerData = new String(buf);
+					System.out.println(playerData);
+					playerData = playerData.trim();
 
-			switch(gameStage){
-				case WAITING_FOR_PLAYERS:
-					if (playerData.startsWith("CONNECT")){ System.out.println("HUY");
-						String tokens[] = playerData.split(" ");
-						NetPlayer player=new NetPlayer(tokens[1],packet.getAddress(),packet.getPort());
-						System.out.println("Player connected: "+tokens[1]);
-						game.update(tokens[1].trim(),player);
-						broadcast("CONNECTED "+tokens[1]);
-						playerCount++;
+					switch(gameStage){
+						case WAITING_FOR_PLAYERS:
+							if (playerData.startsWith("CONNECT")){ System.out.println("HUY");
+								String tokens[] = playerData.split(" ");
+								NetPlayer player=new NetPlayer(tokens[1],packet.getAddress(),packet.getPort());
+								System.out.println("Player connected: "+tokens[1]);
+								game.update(tokens[1].trim(),player);
+								broadcast("CONNECTED "+tokens[1]);
+								playerCount++;
 
-						System.out.println("PLAYERS " + playerCount + "numplayers " + numplayers);
-						if (playerCount==numplayers){System.out.println("equality????");
-							gameStage=GAME_START;
+								System.out.println("PLAYERS " + playerCount + "numplayers " + numplayers);
+								if (playerCount==numplayers){System.out.println("equality????");
+									gameStage=GAME_START;
+									System.out.println("Game State: START");
+									broadcast("START");
+									gameStage=IN_PROGRESS;
+									String arr = game.generateInitialBoard();
+									broadcast("INITIAL " + arr);
+									//send random images array here
+								}
+							}
+							break;
+
+						case GAME_START:
 							System.out.println("Game State: START");
 							broadcast("START");
 							gameStage=IN_PROGRESS;
-							String arr = game.generateInitialBoard();
-							int cnt = 0;
-							int[][] arr1 = new int[ROWS][COLS];
-							for(int i = 0; i<ROWS; i++){
-								for(int j = 0; j<COLS; j++){
-									arr1[i][j] = arr.charAt(cnt);
-									cnt++;
-								}
+							break;
+
+						case IN_PROGRESS:
+							//System.out.println("Game State: IN_PROGRESS");
+							  
+							//Player data was received!
+							if (playerData.startsWith("PLAYER")){
+								//Tokenize:
+								//The format: PLAYER <player name> <x> <y>
+								String[] playerInfo = playerData.split(" ");					  
+								String pname =playerInfo[1];
+								int x = Integer.parseInt(playerInfo[2].trim());
+								int y = Integer.parseInt(playerInfo[3].trim());
+								//Get the player from the game state
+								NetPlayer player=(NetPlayer)game.getPlayers().get(pname);					  
+								player.setX(x);
+								player.setY(y);
+								//Update the game state
+								game.update(pname, player);
+								//Send to all the updated game state
+								broadcast(game.toString());
 							}
-							broadcast("INITIAL " + arr);
-							//send random images array here
-						}
+							break;
 					}
-					break;
 
-				case GAME_START:
-					System.out.println("Game State: START");
-					broadcast("START");
-					gameStage=IN_PROGRESS;
-					break;
-
-				case IN_PROGRESS:
-					//System.out.println("Game State: IN_PROGRESS");
-					  
-					//Player data was received!
-					if (playerData.startsWith("PLAYER")){
-						//Tokenize:
-						//The format: PLAYER <player name> <x> <y>
-						String[] playerInfo = playerData.split(" ");					  
-						String pname =playerInfo[1];
-						int x = Integer.parseInt(playerInfo[2].trim());
-						int y = Integer.parseInt(playerInfo[3].trim());
-						//Get the player from the game state
-						NetPlayer player=(NetPlayer)game.getPlayers().get(pname);					  
-						player.setX(x);
-						player.setY(y);
-						//Update the game state
-						game.update(pname, player);
-						//Send to all the updated game state
-						broadcast(game.toString());
-					}
-					break;
-			}
-
-		}
+				}
+            }
+        };
+        final Thread udpThread = new Thread(udpRunnable);
+        udpThread.start();
+		
 	}
 }
 class GameState implements Constants{

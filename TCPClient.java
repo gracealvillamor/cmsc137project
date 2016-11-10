@@ -34,21 +34,12 @@ public class TCPClient{
 	}
 	public void run(DataModel model) throws Exception{
 		
-		System.out.println("\t\t\t\tTCP 1");
 		final Socket SOCK = new Socket("localhost", 60010); //ip address of server and port to connect to
-
-		System.out.println("\t\t\t\tTCP 2");
 		final PrintStream OUT = new PrintStream(SOCK.getOutputStream());
-
-		System.out.println("\t\t\t\tTCP 3");
 		final InputStreamReader reader = new InputStreamReader(SOCK.getInputStream());
-
-		System.out.println("\t\t\t\tTCP 4");
 		final BufferedReader user = new BufferedReader(new InputStreamReader(System.in));
-
-		System.out.println("\t\t\t\tTCP 5");
 		final BufferedReader IN = new BufferedReader(reader);
-		System.out.println("\t\t\t\tTCP 1");
+
 		final Runnable tcpRunnable = new Runnable() {
             public void run() { //for constantly receiving messages from server
                 
@@ -418,7 +409,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 			final Runnable checker = new Runnable() {
 	            public void run() { //for constantly receiving messages from server
 	                while(true){
-						// System.out.println("yes");
+						System.out.println("yes");
 						if(tcpClient.isFinished()) break;
 						String msg = model.getLatestMessage();
 						if(msg != null){
@@ -432,7 +423,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 
 			checkerThread.start();
 			System.out.println("\t\t\tBEFORE");
-			// tcpClient.run(this.model);
+			tcpClient.run(this.model);
 			System.out.println("\t\t\tAFTER");
 			udpClient.run(this.model);
 			
