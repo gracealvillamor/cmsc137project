@@ -160,7 +160,7 @@ class UDPServer implements Constants{
 					switch(gameStage){
 						case WAITING_FOR_PLAYERS:
 							if (playerData.startsWith("CONNECT")){ System.out.println("HUY");
-								String tokens[] = playerData.split(" ");
+								String tokens[] = playerData.split(":");
 								NetPlayer player=new NetPlayer(tokens[1],packet.getAddress(),packet.getPort());
 								System.out.println("Player connected: "+tokens[1]);
 								game.update(tokens[1].trim(),player);
@@ -175,6 +175,7 @@ class UDPServer implements Constants{
 									gameStage=IN_PROGRESS;
 									String arr = game.generateInitialBoard();
 									broadcast("INITIAL " + arr);
+									broadcast("SCORES:" + game.getStringPlayers());
 									//send random images array here
 								}
 							}
@@ -195,14 +196,15 @@ class UDPServer implements Constants{
 								//The format: PLAYER <player name> <x> <y>
 								String[] playerInfo = playerData.split("/");
 								
-								String[] stringPrevIndices = playerInfo[0].split(" ");
+								String[] stringPrevIndices = playerInfo[0].split(":");
 								LinkedList<Integer> prevIndices = new LinkedList<Integer>(Arrays.asList(Integer.parseInt(stringPrevIndices[1]), Integer.parseInt(stringPrevIndices[2]))); 
 								
-								String[] stringIndices = playerInfo[1].split(" ");
+								String[] stringIndices = playerInfo[1].split(":");
 								LinkedList<Integer> indices = new LinkedList<Integer>(Arrays.asList(Integer.parseInt(stringIndices[0]), Integer.parseInt(stringIndices[1]))); 
 
-								game.swapButtons(getSelf(), prevIndices, indices);
-
+								NetPlayer player = (NetPlayer)game.getPlayers().get(stringIndices[2]); //name of client
+								game.swapButtons(getSelf(), player, prevIndices, indices);
+								System.out.println("===\n" + game.getStringPlayers() + "\n===\n");
 								// while(game.removeMatches(true)) broadcast("");//broadcast actions;
 
 								// String pname =playerInfo[1];
@@ -261,7 +263,7 @@ class GameState implements Constants{
 			}
 		}
 
-		while(removeMatches(null, false));
+		while(removeMatches(null, null, false));
 
 		for(int i = 0; i < this.rows; i++){
 			for(int j = 0; j < this.cols; j++){
@@ -321,17 +323,20 @@ class GameState implements Constants{
 
 		return list;
 	}
-	public void swapButtons(UDPServer udpServer, LinkedList<Integer> prev, LinkedList<Integer> current){
+	public void swapButtons(UDPServer udpServer, NetPlayer player, LinkedList<Integer> prev, LinkedList<Integer> current){
 
 		//swap previously clicked and just clicked buttons
 		int prevClickedButton = this.board[prev.get(0)][prev.get(1)];
 		this.board[prev.get(0)][prev.get(1)] = this.board[current.get(0)][current.get(1)];
 		this.board[current.get(0)][current.get(1)] = prevClickedButton;
 
-		while(removeMatches(udpServer, true));
+		while(removeMatches(udpServer, player, true));
 
 	}
-	public boolean removeMatches(UDPServer udpServer, boolean withScore){
+	public int getEquivalentScore(int count){
+		return ((count-2) * 10);
+	}
+	public boolean removeMatches(UDPServer udpServer, NetPlayer player, boolean withScore){
 
 		final Thread[] rowcheckerThread = new Thread[ROWS];
 		final Thread[] colcheckerThread = new Thread[COLS];
@@ -366,8 +371,13 @@ class GameState implements Constants{
 									}
 									board[0][i] = (new Random()).nextInt(4) + 1;
 								}
-								udpServer.broadcast("REMOVEROW " + temp + " " + startIndex + " " + endIndex + " " + stringify());
-								// udpServer.broadcast("NEWBOARD " + stringify());
+
+								if(withScore) {
+									udpServer.broadcast("REMOVEROW " + temp + " " + startIndex + " " + endIndex + " " + stringify());
+									player.updateScore(getEquivalentScore(endIndex - startIndex + 1));
+									System.out.println("---diff: " + (endIndex - startIndex + 1) + "  ---eq: "+ getEquivalentScore(endIndex - startIndex + 1));
+									udpServer.broadcast("SCORES:" + getStringPlayers());
+								}
 							}
 						}
 					}
@@ -390,8 +400,14 @@ class GameState implements Constants{
 								for(int b = endIndex - startIndex; b >= 0; b--){
 									board[b][temp] = (new Random()).nextInt(4) + 1;
 								}
-								udpServer.broadcast("REMOVECOL " + temp + " " + startIndex + " " + endIndex + " " + stringify());
-								// udpServer.broadcast("NEWBOARD " + stringify());
+
+								
+								if(withScore) {
+									udpServer.broadcast("REMOVECOL " + temp + " " + startIndex + " " + endIndex + " " + stringify());
+									player.updateScore(getEquivalentScore(endIndex - startIndex + 1));
+									System.out.println("---diff: " + (endIndex - startIndex + 1) + "  ---eq: "+ getEquivalentScore(endIndex - startIndex + 1));
+									udpServer.broadcast("SCORES:" + getStringPlayers());
+								}
 							}
 						}
 					}
@@ -446,6 +462,16 @@ class GameState implements Constants{
 	public Map getPlayers(){
 		return players;
 	}
+
+	public String getStringPlayers(){
+		String retval = getPlayers().size() + ":";
+		for(Iterator ite=getPlayers().keySet().iterator();ite.hasNext();){
+			String name=(String)ite.next();
+			NetPlayer player=(NetPlayer)getPlayers().get(name);			
+			retval += name + ":" + player.getScore() + "/";
+		}
+		return retval;
+	}
 }
 
 class NetPlayer {
@@ -468,6 +494,8 @@ class NetPlayer {
 	 * The position of player
 	 */
 	private int x,y;
+
+	private int score = 0;
 
 	/**
 	 * Constructor
@@ -505,6 +533,13 @@ class NetPlayer {
 		return name;
 	}
 	
+	public void updateScore(int score){
+		this.score += score;
+	}
+	
+	public int getScore(){
+		return this.score;
+	}
 	/**
 	 * Sets the X coordinate of the player
 	 * @param x

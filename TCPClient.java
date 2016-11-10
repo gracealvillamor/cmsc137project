@@ -147,7 +147,7 @@ class UDPClient implements Constants{
 				// socket.setSoTimeout(100);
 
 				while(true){
-					if (!connected) send("CONNECT "+model.getNameOfClient());
+					if (!connected) send("CONNECT:"+model.getNameOfClient());
 
 					byte[] buf = new byte[256];
 					DatagramPacket packet = new DatagramPacket(buf, buf.length);
@@ -191,6 +191,25 @@ class UDPClient implements Constants{
 						}else if(serverData.startsWith("REMOVECOL")){
 							String[] data = serverData.split(" ");
 							model.getGame().removeCol(Integer.parseInt(data[1]), Integer.parseInt(data[2]), Integer.parseInt(data[3]), data[4]);
+						}else if(serverData.startsWith("SCORES")){
+							String[] data = serverData.split("/");
+							int size = Integer.parseInt(data[0].split(":")[1]);
+
+							Map<String, Integer> players = new HashMap<String, Integer>();
+							players.put(data[0].split(":")[2], Integer.parseInt(data[0].split(":")[3]));
+
+							System.out.println("!!!\t" + serverData + "!!!\t");
+							for(int i = 1; i < size; i++){
+								players.put(data[i].split(":")[0], Integer.parseInt(data[i].split(":")[1]));
+							}
+
+							for(Map.Entry<String, Integer> entry : players.entrySet()){
+								System.out.println(entry.getKey() + "\t\t" + entry.getValue());
+					            // i += 20;
+					        }
+
+					        model.setScores(players);
+					        model.getScorePanel().updateScores();
 						}
 					}
 				}
@@ -204,7 +223,6 @@ class UDPClient implements Constants{
 	}
 }
 
-
 class DataModel implements Constants{
 	private String name = "";
 	private String latestTCPMessage, latestUDPMessage;
@@ -213,6 +231,8 @@ class DataModel implements Constants{
 	private UDPClient udpClient;
 	private TCPClient tcpClient;
 	private GameProperPanel game;
+	private ScorePanel scorePanel;
+	private Map players;
 
 	public DataModel(){
 		this.name = getNameOfClient();
@@ -272,6 +292,12 @@ class DataModel implements Constants{
 	public GameProperPanel getGame(){
 		return this.game;
 	}
+	public void setScorePanel(ScorePanel panel){
+		this.scorePanel = panel;
+	}
+	public ScorePanel getScorePanel(){
+		return this.scorePanel;
+	}
 	public void setUDPClient(UDPClient udpClient){
 		this.udpClient = udpClient;
 	}
@@ -284,7 +310,14 @@ class DataModel implements Constants{
 	public TCPClient getTCPclient(){
 		return this.tcpClient;
 	}
+	public void setScores(Map<String, Integer> players){
+		this.players = players;
+	}
+	public Map<String, Integer> getScores(){
+		return this.players;
+	}
 }
+
 
 class MainFrame extends JFrame{
 	final JPanel cards;
@@ -370,6 +403,51 @@ class MenuPanel extends JPanel{
 		g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON); //to avoid pixelation
 	}
 }
+class ScorePanel extends JPanel{
+	private DataModel model;
+	private Image img;
+	JTextArea scoreArea;
+
+	public ScorePanel(DataModel model){
+		this.model = model;
+		this.setBackground(Color.RED);
+
+		scoreArea = new JTextArea(10, 5);
+		this.add(scoreArea);
+	}
+	public void updateScores(){
+		Map<String, Integer> scores = model.getScores();
+    	int i = 0;
+	    
+	    scoreArea.setText("");
+	    for(Map.Entry<String, Integer> entry : scores.entrySet()){
+			scoreArea.append(entry.getKey() + "\t" + entry.getValue() + "\n");
+            // i += 20;
+        }
+
+		this.revalidate();
+		this.repaint();
+	}
+	public void paintComponent(Graphics g) {
+	  	Graphics2D g2d = (Graphics2D)g;
+    
+    	g.drawImage(img, 0, 0, null);
+
+    	Map<String, Integer> scores = model.getScores();
+    	int i = 0;
+	    
+	    for(Map.Entry<String, Integer> entry : scores.entrySet()){
+			g.drawString(entry.getKey() + "\t" + entry.getValue(), 20, 20+i);
+            i += 20;
+        }
+
+
+		// this.setSize(500,500);
+		this.setLocation(80,400);
+
+  	}
+
+}
 class GamePanel extends JPanel implements Runnable{ //panel showing the game proper
 
 	private Image img;
@@ -438,7 +516,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 			final Runnable checker = new Runnable() {
 	            public void run() { //for constantly receiving messages from server
 	                while(true){
-						System.out.println("yes");
+						// System.out.println("yes");
 						if(tcpClient.isFinished()) break;
 						String msg = model.getLatestTCPMessage();
 						if(msg != null){
@@ -451,8 +529,10 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 	        final Thread checkerThread = new Thread(checker);
 
 			checkerThread.start();
+			ScorePanel scorePanel = new ScorePanel(model);
+			model.setScorePanel(scorePanel);
 			System.out.println("\t\t\tBEFORE");
-			tcpClient.run(this.model);
+			// tcpClient.run(this.model);
 			System.out.println("\t\t\tAFTER");
 			udpClient.run(this.model);
 			
@@ -463,6 +543,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 			gameProper = new GameProperPanel(model);
 			model.setGame(gameProper);
 			this.add(gameProper, BorderLayout.CENTER);
+			this.add(scorePanel, BorderLayout.CENTER);
 			this.revalidate();
 			this.repaint();
 		}catch(Exception ex){}
@@ -491,6 +572,7 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 	private final ImageIcon i4 = new ImageIcon("i4.png");
 
 	private UDPClient udpClient;
+	private DataModel model;
 
 	int clicks = 0;
 	LinkedList<Integer> previousIndices;
@@ -498,6 +580,7 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 	boolean hasMatches = true;
 
 	public GameProperPanel(DataModel model){
+		this.model = model;
 		System.out.println("HUY POTA");
 		this.setLayout(new GridLayout(ROWS,COLS));
 		this.udpClient = model.getUDPclient();
@@ -541,8 +624,8 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 				getMatchesFromArray(buttons[indices.get(0)]).size() > 0 ||
 				getMatchesFromArray(getColumnFromButtons(indices.get(1))).size() > 0){
 					// while(removeMatches(true));
-					String stringIndices = "SWAP " + previousIndices.get(0) + " " +previousIndices.get(1);
-					stringIndices += "/" + indices.get(0) + " " +indices.get(1);
+					String stringIndices = "SWAP:" + previousIndices.get(0) + ":" +previousIndices.get(1);
+					stringIndices += "/" + indices.get(0) + ":" +indices.get(1) + ":" + model.getNameOfClient();
 					this.udpClient.send(stringIndices);
 			} else{
 				swapButtons(previousIndices, indices);
