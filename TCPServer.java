@@ -10,7 +10,7 @@ public class TCPServer{
 	}
 	
 	public void run() throws Exception{
-		final int numplayers = 3; //number of players; must be changed
+		final int numplayers = 2; //number of players; must be changed
 		ServerSocket SERVER = new ServerSocket(60010); //port to connect to
 
 		Socket[] SOCK = new Socket[numplayers];
@@ -29,6 +29,7 @@ public class TCPServer{
 			IN[i] = new BufferedReader(reader[i]);
 			OUT[i] = new PrintStream(SOCK[i].getOutputStream());
 			name[i] = IN[i].readLine();
+			System.out.println("!!!NAME!!! " + name[i]);
 			final int f = i; //current iteration
 			receiver[i] = new Runnable(){
 				public void run(){
