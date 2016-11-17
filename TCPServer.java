@@ -205,19 +205,16 @@ class UDPServer implements Constants{
 								NetPlayer player = (NetPlayer)game.getPlayers().get(stringIndices[2]); //name of client
 								game.swapButtons(getSelf(), player, prevIndices, indices);
 								System.out.println("===\n" + game.getStringPlayers() + "\n===\n");
-								// while(game.removeMatches(true)) broadcast("");//broadcast actions;
+				
+							}else if(playerData.startsWith("TIMEUP")){
+								String[] playerInfo = playerData.split(" ");
+								if(game.getLevel() == Integer.parseInt(playerInfo[1])){
+									broadcast("ELIMINATE:" + game.getLowestPlayer());
+									game.eliminateLowestPlayer();
+									broadcast("SCORES:" + game.getStringPlayers());
+									game.levelUp();
+								}
 
-								// String pname =playerInfo[1];
-								// int x = Integer.parseInt(playerInfo[2].trim());
-								// int y = Integer.parseInt(playerInfo[3].trim());
-								// //Get the player from the game state
-								// NetPlayer player=(NetPlayer)game.getPlayers().get(pname);					  
-								// player.setX(x);
-								// player.setY(y);
-								// //Update the game state
-								// game.update(pname, player);
-								// //Send to all the updated game state
-								// broadcast(game.toString());
 							}
 							break;
 					}
@@ -237,6 +234,8 @@ class GameState implements Constants{
 	private Map players=new HashMap();
 	private int rows, cols;
 	private int[][] board;
+	private int level = 1;
+	private String lowest = null;
 	
 	/**
 	 * Simple constructor
@@ -274,6 +273,12 @@ class GameState implements Constants{
 		}
 
 		return retval;
+	}
+	public int getLevel(){
+		return this.level;
+	}
+	public void levelUp(){
+		this.level += 1;
 	}
 	public String stringify(){
 		String retval = "";
@@ -464,13 +469,47 @@ class GameState implements Constants{
 	}
 
 	public String getStringPlayers(){
-		String retval = getPlayers().size() + ":";
-		for(Iterator ite=getPlayers().keySet().iterator();ite.hasNext();){
+		String retval = players.size() + ":";
+		for(Iterator ite=players.keySet().iterator();ite.hasNext();){
 			String name=(String)ite.next();
-			NetPlayer player=(NetPlayer)getPlayers().get(name);			
+			NetPlayer player=(NetPlayer)players.get(name);			
 			retval += name + ":" + player.getScore() + "/";
 		}
 		return retval;
+	}
+
+	public void eliminateLowestPlayer(){
+		players.remove(this.lowest);
+	}
+
+	public boolean checkLowestDuplicate(NetPlayer lowestPlayer){
+		for(Iterator ite=players.keySet().iterator();ite.hasNext();){
+			String name=(String)ite.next();
+			NetPlayer player=(NetPlayer)players.get(name);			
+			if(player.getScore() == lowestPlayer.getScore() && 
+				!(player.getName().equals(lowestPlayer.getName()))){ //duplicate lowest score but different players
+					this.lowest = null;
+					return true;
+			}
+		}
+
+		return false;
+	}
+	public String getLowestPlayer(){
+		NetPlayer lowestPlayer = (NetPlayer)players.get(players.keySet().toArray()[0]);
+
+		for(Iterator ite=players.keySet().iterator();ite.hasNext();){
+			String name=(String)ite.next();
+			NetPlayer player=(NetPlayer)players.get(name);			
+			if(player.getScore() < lowestPlayer.getScore()){
+				lowestPlayer = player;
+			}
+		}
+
+		if(!checkLowestDuplicate(lowestPlayer)) //no duplicate of lowest score
+			this.lowest = lowestPlayer.getName();
+
+		return this.lowest;
 	}
 }
 

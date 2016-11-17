@@ -5,6 +5,7 @@ import java.awt.*;
 import javax.swing.JButton;
 import javax.swing.JTextField;
 import javax.swing.JTextArea;
+import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -15,7 +16,11 @@ import javax.swing.ImageIcon;
 import java.awt.event.*;
 import java.awt.image.*;
 import javax.imageio.*;
+import java.text.*;
 
+/**
+ * Class for sending and receiving chat messages to and fro the server.
+ */
 public class TCPClient{
 	private boolean isFinished = false;
 
@@ -41,13 +46,15 @@ public class TCPClient{
 		final BufferedReader IN = new BufferedReader(reader);
 
 		final Runnable tcpRunnable = new Runnable() {
-            public void run() { //for constantly receiving messages from server
+            public void run() { 
                 
 				System.out.println("--- " + model.getNameOfClient() + " ---");
 				OUT.println(model.getNameOfClient());
 
+
+				//runnable for sending messages constantly to the server
 				final Runnable send = new Runnable() {
-		            public void run() { //for constantly receiving messages from client
+		            public void run() {
 		                while(true){
 		                	try{
 								String clientMessage = model.getTCPMessageToSend();
@@ -78,8 +85,9 @@ public class TCPClient{
 
 		        final Thread sendThread = new Thread(send);
 
+		        //runnable for constantly receiving messages from the server
 		        final Runnable receive = new Runnable() {
-		            public void run() { //for constantly receiving messages from server
+		            public void run() {
 		                while(true){
 		                	if(sendThread.getState()==Thread.State.TERMINATED) break;
 		                	try{
@@ -116,23 +124,26 @@ public class TCPClient{
 	}
 }
 
+/**
+ * Class for receving and sending game data to and from the server
+ */
 class UDPClient implements Constants{
-
-	String server="192.168.56.1";
 	DatagramSocket socket;
 	boolean connected=false;
 	boolean isBoardReady = false;
 
+	//sends packet of data to the server
 	public void send(String msg){
 		try{
 			byte[] buf = msg.getBytes();
-        	InetAddress address = InetAddress.getByName(server);
+        	InetAddress address = InetAddress.getByName(SERVER_ADDRESS);
         	DatagramPacket packet = new DatagramPacket(buf, buf.length, address, UDP_PORT);
         	socket.send(packet);
         }catch(Exception e){}
 		
 	}
 
+	//checks if the initial game board has already been sent by the server
 	public boolean isBoardReady(){
 		return isBoardReady;
 	}
@@ -140,11 +151,9 @@ class UDPClient implements Constants{
 		
 		socket = new DatagramSocket();
 
+		//runnable for receiving packets of data from the server
 		final Runnable udpRunnable = new Runnable() {
-            public void run() { //for constantly receiving messages from server
-                
-
-				// socket.setSoTimeout(100);
+            public void run() {
 
 				while(true){
 					if (!connected) send("CONNECT:"+model.getNameOfClient());
@@ -160,38 +169,37 @@ class UDPClient implements Constants{
 					serverData=serverData.trim();
 
 					if (serverData.startsWith("CONNECTED")){
+
 						connected=true;
 						System.out.println("Connected.");
-					// }else if (!connected){ System.out.println("KHKDHAKHFSKHFJKDSAHKFDAHJKFKDHAKFHDAKHFDA");
-					// 	System.out.println("Connecting..");				
-					// 	send("CONNECT "+model.getNameOfClient());
+
 					}else if (connected){
+
 						if (serverData.startsWith("PLAYER")){
+
 							String[] playersInfo = serverData.split(":");
 							for (int i=0;i<playersInfo.length;i++){
 								String[] playerInfo = playersInfo[i].split(" ");
-								String pname =playerInfo[1];
-								
-								// do some shit here					
+								String pname =playerInfo[1];					
 							}
-						}else if(serverData.startsWith("INITIAL")){
+
+						}else if(serverData.startsWith("INITIAL")){ //initial game board from the server
 							String[] data = serverData.split(" ");
-							model.setInitialBoard(data[1]); //fill ths in
+							model.setInitialBoard(data[1]);
 							isBoardReady = true;
-							System.out.println("check!!! " + data[1]);
-							for(int i = 0; i<ROWS; i++){
-								for(int j = 0; j<COLS; j++){
-									System.out.print(model.getInitialBoard()[i][j] + " ");
-								}
-								System.out.println();
-							}
-						}else if(serverData.startsWith("REMOVEROW")){
+							
+						}else if(serverData.startsWith("REMOVEROW")){ //another player attacked horizontally
+
 							String[] data = serverData.split(" ");
 							model.getGame().removeRow(Integer.parseInt(data[1]), Integer.parseInt(data[2]), Integer.parseInt(data[3]), data[4]);
-						}else if(serverData.startsWith("REMOVECOL")){
+
+						}else if(serverData.startsWith("REMOVECOL")){ //another player matched vertically
+
 							String[] data = serverData.split(" ");
 							model.getGame().removeCol(Integer.parseInt(data[1]), Integer.parseInt(data[2]), Integer.parseInt(data[3]), data[4]);
-						}else if(serverData.startsWith("SCORES")){
+
+						}else if(serverData.startsWith("SCORES")){ //score updates
+
 							String[] data = serverData.split("/");
 							int size = Integer.parseInt(data[0].split(":")[1]);
 
@@ -203,14 +211,39 @@ class UDPClient implements Constants{
 								players.put(data[i].split(":")[0], Integer.parseInt(data[i].split(":")[1]));
 							}
 
-							for(Map.Entry<String, Integer> entry : players.entrySet()){
-								System.out.println(entry.getKey() + "\t\t" + entry.getValue());
-					            // i += 20;
+					        if(players.size() == 1){
+					        	// @UITEAM: show winning panel here
+					        	// painclude po ng name, score. at level na naachieve ni user
+					        	//wag na bigyan ng options si user, ipaclose na yung window kasi di naman magrerestart server pag nag new game sya.
+					        	System.out.println("\t\t=============YOU WIN!!!==================");
 					        }
 
 					        model.setScores(players);
 					        model.getScorePanel().updateScores();
 					        model.getPlayersPanel().updatePlayers();
+
+						}else if(serverData.startsWith("ELIMINATE")){ //a player has been eliminated from the game
+
+							String[] data = serverData.split(":");
+							System.out.println(model.getNameOfClient() + "\t\t" + data[1]);
+
+							if(model.getNameOfClient().equals(data[1])){
+								System.out.println("\t\t=============GAME OVER============");
+								// @UITEAM: show game over panel here
+								// painclude po ng name, score. at level na naachieve ni user
+								// wag na po lagyan ng click somewhere or press something to continue. 
+								//wag na bigyan ng options si user, ipaclose na yung window kasi di naman magrerestart server pag nag new game sya.
+							}else{
+								// @UITEAM: remove previous timerPanel from gamePanel and add a new timerPanel
+								model.levelUp();
+								TimerPanel timerPanel = new TimerPanel(model);
+								model.getGame().remove(model.getTimer());
+								model.getGame().add(timerPanel, BorderLayout.CENTER);			
+								model.getGame().revalidate();
+								model.getGame().repaint();
+								model.setTimer(timerPanel);
+								timerPanel.start();
+							}
 						}
 					}
 				}
@@ -224,6 +257,10 @@ class UDPClient implements Constants{
 	}
 }
 
+/**
+ * Class that can be accessed by any class.
+ * This is where all the data that should be seen by outside classes are passed
+ */
 class DataModel implements Constants{
 	private String name = "";
 	private String latestTCPMessage, latestUDPMessage;
@@ -234,40 +271,54 @@ class DataModel implements Constants{
 	private GameProperPanel game;
 	private ScorePanel scorePanel;
 	private PlayersPanel playersPanel;
+	private TimerPanel timer;
 	private Map players;
+	private int level = 1;
+	private int state;
 
 	public DataModel(){
-		this.name = getNameOfClient();
 		this.board = new int[ROWS][COLS];
+		this.state = IN_PROGRESS;
 	}
+
+	// set username of client
 	public void setNameOfClient(String name){
 		this.name = name;
 	}
+
+	// get the username of the client
 	public String getNameOfClient(){
 		return this.name;
 	}
+
+	// put the latest chat message from other users
+	// used in TCPClient class
 	public void putTCPLatestMessage(String message){
 		this.latestTCPMessage = message;
 	}
+
+	// getter for the latest chat message from the other users
+	// used for putting the latest retrieved chat message to the chat area
+	// set to null after the message has been retrieved and shown in the chat area
 	public String getLatestTCPMessage(){
 		String message = this.latestTCPMessage;
 		this.latestTCPMessage = null;
 		return message;
 	}
-	public void putUDPLatestMessage(String message){
-		this.latestUDPMessage = message;
-	}
-	public String getLatestUDPMessage(){
-		String message = this.latestUDPMessage;
-		this.latestUDPMessage = null;
-		return message;
-	}
+
+	// send chat message of the client
+	// used when the user sends his/her message from the chat area
 	public void sendTCPMessage(String message){
 		this.messageToSend = message;
 	}
+
+	// get the chat message of client
+	// used in TCPClient class to get the message sent by the user in chat area
 	public String getTCPMessageToSend(){
 		return this.messageToSend;
 	}
+
+	// set the initial board that was received from the server
 	public void setInitialBoard(String initialBoard){
 		int cnt = 0;
 		System.out.println("wat " + initialBoard);
@@ -277,66 +328,95 @@ class DataModel implements Constants{
 				cnt++;
 			}
 		}
-		System.out.println("getInitialBoard");
-		for(int i = 0; i<ROWS; i++){
-			for(int j = 0; j<COLS; j++){
-				System.out.print(getInitialBoard()[i][j] + " ");
-			}
-			System.out.println();
-		}
 	}
+
+	// gets the initial board sent by the server
 	public int[][] getInitialBoard(){
 		return this.board;
 	}
+
+	// puts the GameProperPanel used for all the other classes to be able to access it
 	public void setGame(GameProperPanel game){
 		this.game = game;
 	}
+
+	// gets the GameProperPanel used
 	public GameProperPanel getGame(){
 		return this.game;
 	}
+
+	// puts the TimerPanel used for all the other classes to be able to access it
+	public void setTimer(TimerPanel timer){
+		this.timer = timer;
+	}
+
+	// gets the GameProperPanel used
+	public TimerPanel getTimer(){
+		return this.timer;
+	}
+
+	// puts the ScorePanel used for all the other classes to be able to access it
 	public void setScorePanel(ScorePanel panel){
 		this.scorePanel = panel;
 	}
+
+	// gets the ScorePanel used
 	public ScorePanel getScorePanel(){
 		return this.scorePanel;
 	}
+
+	// puts the PlayerPanel used for all the other classes to be able to access it
 	public void setPlayersPanel(PlayersPanel panel){
 		this.playersPanel = panel;
 	}
+
+	// gets the PlayersPanel used
 	public PlayersPanel getPlayersPanel(){
 		return this.playersPanel;
 	}
+
+	// puts the UDPClient used for all the other classes to be able to access it
 	public void setUDPClient(UDPClient udpClient){
 		this.udpClient = udpClient;
 	}
+
+	// gets the UDPClient used so that any class can send data anytime
 	public UDPClient getUDPclient(){
 		return this.udpClient;
 	}
-	public void setTCPClient(TCPClient tcpClient){
-		this.tcpClient = tcpClient;
-	}
-	public TCPClient getTCPclient(){
-		return this.tcpClient;
-	}
+
+	// sets scores of the players
 	public void setScores(Map<String, Integer> players){
 		this.players = players;
 	}
+
+	//gets the map of scores of players
 	public Map<String, Integer> getScores(){
 		return this.players;
 	}
+
+	// gets the current level of the game
+	public int getLevel(){
+		return this.level;
+	}
+
+	// increments the current level
+	public void levelUp(){
+		this.level += 1;
+	}
 }
 
-
+/**
+ * Container for all the components
+ */
 class MainFrame extends JFrame{
 	final JPanel cards;
 	final MenuPanel menuPanel;
-	// final GamePanel gamePanel;
 	final ResultPanel resultPanel;
 	final DataModel model;
 	public MainFrame(){
 		model = new DataModel();
 		menuPanel = new MenuPanel(model);
-		// gamePanel = new GamePanel(model);
 		resultPanel = new ResultPanel(model);
 
 		cards = new JPanel(new CardLayout());
@@ -344,7 +424,6 @@ class MainFrame extends JFrame{
 		cards.setOpaque(true);
 
 		cards.add(menuPanel, "menu");
-		// cards.add(gamePanel, "game");
 		cards.add(resultPanel, "result");
 
 		actionMethods method = new actionMethods();
@@ -379,6 +458,9 @@ class MainFrame extends JFrame{
 	}
 }
 
+/**
+ * Panel where the user can enter his/her preferred name
+ */
 class MenuPanel extends JPanel{
 
 	private Image img;
@@ -411,18 +493,22 @@ class MenuPanel extends JPanel{
 		g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON); //to avoid pixelation
 	}
 }
-class PlayersPanel extends JPanel{
+
+/**
+ * Panel for showing all the players that are still in the game
+ */
+class PlayersPanel extends JPanel{ 
 	private DataModel model;
 	JTextArea playersArea;
 
 	public PlayersPanel(DataModel model){
 		this.model = model;
-		// this.setBackground(Color.RED);
-		
 
+		//@UITEAM: paimprove naman po ng itsura nito, kaawa awa e haha (ako may gawa nito kaya panget -geli)
 		playersArea = new JTextArea(10, 5);
 		this.add(playersArea);
 	}
+
 	public void updatePlayers(){
 		Map<String, Integer> players = model.getScores();
 	    
@@ -434,6 +520,7 @@ class PlayersPanel extends JPanel{
 		this.revalidate();
 		this.repaint();
 	}
+
 	public void paintComponent(Graphics g) {
 	  	Graphics2D g2d = (Graphics2D)g;
     	
@@ -442,15 +529,19 @@ class PlayersPanel extends JPanel{
 
   	}
 }
+
+/**
+ * Panel for showing all the scores of players that are still in the game
+ */
 class ScorePanel extends JPanel{
 	private DataModel model;
 	JTextArea scoreArea;
 
 	public ScorePanel(DataModel model){
 		this.model = model;
-		// this.setBackground(Color.RED);
-		
 
+		//@UITEAM: pasama na rin po sa iimprove, pag mahaba kasi yung name ng users
+		//lumalaki din yung scoreArea, hindi sya maganda tingnan. 
 		scoreArea = new JTextArea(10, 5);
 		this.add(scoreArea);
 	}
@@ -461,7 +552,6 @@ class ScorePanel extends JPanel{
 	    scoreArea.setText("");
 	    for(Map.Entry<String, Integer> entry : scores.entrySet()){
 			scoreArea.append(entry.getKey() + "\t" + entry.getValue() + "\n");
-            // i += 20;
         }
 
 		this.revalidate();
@@ -473,6 +563,87 @@ class ScorePanel extends JPanel{
   	}
 
 }
+
+/**
+ * Panel for showing all the remaining time
+ */
+class TimerPanel extends JPanel implements Runnable, Constants{
+	private DataModel model;
+	private Image img;
+	private String time = "0" + TIME_LIMIT + ":00";
+	private boolean timesUp = false;
+	private Thread T;
+
+	public TimerPanel(DataModel model){
+
+		img = new ImageIcon("time-bg.png").getImage();
+	    Dimension size = new Dimension(img.getWidth(null), img.getHeight(null));
+	    setSize(size);
+	    setLayout(null);
+
+	    // @UITEAM: not really sure kung nagpapakita ba tong textArea na to,
+	    // pero ang intention ko sana talaga dito ay timer na may black na background
+	    // (yung time-bg.png). Anyway, paayos na lang din po itsura.
+	    JTextArea playersArea = new JTextArea(10, 5);
+		this.add(playersArea);
+
+		this.model = model;
+		this.start();
+	}
+	public void run(){
+		long start = System.currentTimeMillis();
+        int t = TIME_LIMIT*60;
+        long delay = t*1000;
+
+        do{
+
+            int minutes = t/60;
+            int seconds = t%60;
+            //int seconds = (int) t / 1000;
+            SwingUtilities.invokeLater(new Runnable() {
+                 public void run()
+                 {
+                 	DecimalFormat formatter = new DecimalFormat("00");
+					String fseconds = formatter.format(seconds);
+                    time = ((minutes+ "") +":"+ (fseconds + ""));
+                 }
+            });
+            try { 
+            	Thread.sleep(1000);
+            	System.out.println("\t\t\t" + time);
+		        this.revalidate();
+		        this.repaint();
+            	t -= 1;
+            	delay -= 1000;
+             } catch(Exception e) {}
+        }while (delay!=0);
+        
+        // lets the server know that the time limit for the current level is over
+        this.model.getUDPclient().send("TIMEUP " + this.model.getLevel());
+	}
+	public void start(){
+		while(T==null){
+			T = new Thread(this);
+			T.start();
+		}
+	}
+	public void paintComponent(Graphics g) {
+	  	Graphics2D g2d = (Graphics2D)g;
+    
+    	g.drawImage(img, 0, 0, this);
+	    
+	    g.setColor(Color.WHITE);
+		g.setFont(new Font("Courier", Font.BOLD, 25));
+		g.drawString(time, 30, 20);
+
+    	this.setLocation(80,400);
+  	}
+}
+
+
+/**
+ * Panel containing all the components of the game
+ */
 class GamePanel extends JPanel implements Runnable{ //panel showing the game proper
 
 	private Image img;
@@ -489,7 +660,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 	    setLayout(null);
 
 	    this.setLayout(new FlowLayout());
-
+	    
 
 	    this.model = model;
 
@@ -533,7 +704,6 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 		TCPClient tcpClient = new TCPClient();
 		UDPClient udpClient = new UDPClient();
 
-		this.model.setTCPClient(tcpClient);
 		this.model.setUDPClient(udpClient);
 		try{
 			System.out.println("!!!!!NAME!!!!!!\t" + this.model.getNameOfClient());
@@ -541,7 +711,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 			final Runnable checker = new Runnable() {
 	            public void run() { //for constantly receiving messages from server
 	                while(true){
-						System.out.println("yes");
+						// System.out.println("yes");
 						if(tcpClient.isFinished()) break;
 						String msg = model.getLatestTCPMessage();
 						if(msg != null){
@@ -552,26 +722,39 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 	        };
 
 	        final Thread checkerThread = new Thread(checker);
-
 			checkerThread.start();
+
 			ScorePanel scorePanel = new ScorePanel(model);
 			model.setScorePanel(scorePanel);
+
 			PlayersPanel playersPanel = new PlayersPanel(model);
 			model.setPlayersPanel(playersPanel);
-			System.out.println("\t\t\tBEFORE");
+
 			tcpClient.run(this.model);
-			System.out.println("\t\t\tAFTER");
 			udpClient.run(this.model);
 			
-			System.out.println("\t\t\tNICE");
+			//di rin gumagana sa kin withough this "eh" garbage lol
 			while(!udpClient.isBoardReady()) System.out.println("eh");
 
-			System.out.println("READY NA!!!");
 			gameProper = new GameProperPanel(model);
 			model.setGame(gameProper);
+
+			TimerPanel timerPanel = new TimerPanel(model);
+			model.setTimer(timerPanel);
+
+			// @UITEAM: pls fix postioning nito, kaya nagbblink yung gawa kong gui ay dahil sa maling positioning
+			// make sure po na kita yung chatArea, timerPanel, scorePanel, gameProperPanel, at playersPanel. Maskiw ag na yung quit chat :)
+			// ps: yung timerPanel pala ay nirereplace kada new round, thread kasi yung timerPanel, hindi narerevive kailangan ireplace
+			// makikita ang pagreplace ng timerPanel sa may ELIMINATE na packet na rereceive
+			// pacheck na lang if gumagana yung pagreplace ng timerpanel. basta dapat every level bumabalik sa timelimit
+			
 			this.add(gameProper, BorderLayout.CENTER);
 			this.add(scorePanel, BorderLayout.CENTER);
+			this.add(timerPanel, BorderLayout.CENTER);
 			this.add(playersPanel, BorderLayout.CENTER);
+			
+			timerPanel.start();
+
 			this.revalidate();
 			this.repaint();
 		}catch(Exception ex){}
@@ -589,8 +772,12 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 	    
 	    g.drawString("Game panel", 270, 310);
 
-  }
+  	}
 }
+
+/**
+ * Panel containing all the game buttons
+ */
 class GameProperPanel extends JPanel implements ActionListener, Constants{
 	private final JButton[][] buttons = new JButton[ROWS][COLS];
 
@@ -609,20 +796,18 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 
 	public GameProperPanel(DataModel model){
 		this.model = model;
-		System.out.println("HUY POTA");
 		this.setLayout(new GridLayout(ROWS,COLS));
 		this.udpClient = model.getUDPclient();
-		// while(model.getNameOfClient().equals(""));
+
+		// ganerates images for the board based on the initial board given by the server
 		for(int i=0; i<ROWS; i++){
 			for(int j=0; j<COLS; j++){
 				buttons[i][j] = new JButton(generateImage(model.getInitialBoard()[i][j]));
-				// buttons[i][j] = new JButton(i1);
 				buttons[i][j].addActionListener(this);
 			}
 		}
 
-		while(removeMatches(false));
-
+		// add the buttons to the panel
 		for(int i=0; i<ROWS; i++){
 			for(int j=0; j<COLS; j++){
 				this.add(buttons[i][j]);
@@ -631,11 +816,9 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 
 	}
 	public void actionPerformed(ActionEvent evt){
+		// @UITEAM: pahighlight po yung mga buttons na kiniclick ni user
 		clicks += 1;
 
-		
-
-		// buttons[indices.get(0)][indices.get(1)];
 		if(clicks == 1){
 			previousIndices = getIndicesOfButton(buttons, (JButton)evt.getSource());
 		}
@@ -646,18 +829,19 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 			System.out.println(indices);
 
 			if(((previousIndices.get(0) == indices.get(0)) && (Math.abs(previousIndices.get(1) - indices.get(1)) == 1))
-				|| ((previousIndices.get(1) == indices.get(1)) && (Math.abs(previousIndices.get(0) - indices.get(0)) == 1))){ //allow swapping of adjacent buttons only
-				swapButtons(previousIndices, indices);
+				|| ((previousIndices.get(1) == indices.get(1)) && (Math.abs(previousIndices.get(0) - indices.get(0)) == 1))){
+				swapButtons(previousIndices, indices); //allow swapping of adjacent buttons only
 
 				if(getMatchesFromArray(buttons[previousIndices.get(0)]).size() > 0 ||
 					getMatchesFromArray(getColumnFromButtons(previousIndices.get(1))).size() > 0 ||
 					getMatchesFromArray(buttons[indices.get(0)]).size() > 0 ||
 					getMatchesFromArray(getColumnFromButtons(indices.get(1))).size() > 0){
-						// while(removeMatches(true));
+						// send to server action of user
 						String stringIndices = "SWAP:" + previousIndices.get(0) + ":" +previousIndices.get(1);
 						stringIndices += "/" + indices.get(0) + ":" +indices.get(1) + ":" + model.getNameOfClient();
 						this.udpClient.send(stringIndices);
 				} else{
+					// swapping buttons clicked by the user yields to no result; revert the swap
 					swapButtons(previousIndices, indices);
 				}
 				
@@ -678,6 +862,7 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 		} 
 	}
 	
+	// sets the images for the 2D integer board
 	public void setBoard(int[][] board){
 		for(int i=0; i<ROWS; i++){
 			for(int j=0; j<COLS; j++){
@@ -685,15 +870,17 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 			}
 		}
 	}
-	public void swapButtons(LinkedList<Integer> prev, LinkedList<Integer> current){
 
-		//swap previously clicked and just clicked buttons
+	// swaps previously clicked and just clicked buttons
+	public void swapButtons(LinkedList<Integer> prev, LinkedList<Integer> current){
+		// @UITEAM: kung kaya po, palagyan po ito ng effects na nagsswap :)
 		JButton prevClickedButton = buttons[prev.get(0)][prev.get(1)];
 		buttons[prev.get(0)][prev.get(1)] = buttons[current.get(0)][current.get(1)];
 		buttons[current.get(0)][current.get(1)] = prevClickedButton;
 
 	}
 
+	// generate image according to a given integer
 	public ImageIcon generateImage(int val){
 		switch(val){
 			case 1: return i1;
@@ -704,16 +891,7 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 		return null;
 	}
 
-	public ImageIcon generateRandomImage(){
-		switch((new Random()).nextInt(4) + 1){
-			case 1: return i1;
-			case 2: return i2;
-			case 3: return i3;
-			case 4: return i4;
-		}
-		return null;
-	}
-
+	// gets the indices of a certain button 
 	public LinkedList<Integer> getIndicesOfButton(JButton[][] buttonArray, JButton button){
 		for(int i=0; i<ROWS; i++){
 			for(int j=0; j<COLS; j++){
@@ -724,8 +902,9 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 		return null;
 	}
 
+	// retrieves column of buttons
 	public JButton[] getColumnFromButtons(int col){
-		JButton[] colArr = new JButton[5];
+		JButton[] colArr = new JButton[ROWS];
 
 		for(int i=0; i<ROWS; i++){
 			colArr[i] = buttons[i][col];
@@ -734,6 +913,7 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 		return colArr;
 	}
 
+	// returns all the matches from an array (3 & above consecutive duplicates)
 	public LinkedList<Integer> getMatchesFromArray(JButton[] buttonArray){
 		LinkedList<Integer> list = new LinkedList<Integer>();
 
@@ -762,6 +942,7 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 		return list;
 	}
 
+	// converts stringified board from server into a 2D int array board
 	public int[][] getBoardFromString(String board){
 		int[][] retBoard = new int[ROWS][COLS];
 
@@ -776,9 +957,12 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 		return retBoard;
 	}
 
+	// removes horizontal matches
 	public void removeRow(int row, int startIndex, int endIndex, String board){
+		//@UITEAM: kung kaya po, palagyan po ito ng effects. wag na idisable yung buttons,
+		//pawalain na lang sila. as in yung parang sa mga candy crush, nawawala yung buttons pagkapinagmatch sila
 		for(int b = startIndex; b <= endIndex; b++){
-			buttons[row][b].setEnabled(false);
+			buttons[row][b].setEnabled(false); 
 		}
 
 		final Timer stopwatch = new Timer(SEC * 1000, new EnableListener(buttons));
@@ -788,9 +972,12 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 		setBoard(getBoardFromString(board));
 	}
 
+	// removes vertical matches
 	public void removeCol(int col, int startIndex, int endIndex, String board){
+		//@UITEAM: kung kaya po, palagyan po ito ng effects. wag na idisable yung buttons,
+		//pawalain na lang sila. as in yung parang sa mga candy crush, nawawala yung buttons pagkapinagmatch sila
 		for(int b = startIndex; b <= endIndex; b++){
-			buttons[b][col].setEnabled(false);
+			buttons[b][col].setEnabled(false); 
 		}
 
 		final Timer stopwatch = new Timer(SEC * 1000, new EnableListener(buttons));
@@ -800,154 +987,7 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 		setBoard(getBoardFromString(board));
 	}
 
-	public boolean removeMatches(boolean withScore){
-
-		final Thread[] rowcheckerThread = new Thread[ROWS];
-		final Thread[] colcheckerThread = new Thread[COLS];
-
-		final Runnable[] rowchecker = new Runnable[ROWS];
-		final Runnable[] colchecker = new Runnable[COLS];
-
-		int newMatchChecker = matchChecker;
-
-		// final Timer[][] stopwatch = new Timer[ROWS+COLS][ROWS];
-		
-
-	    for(int r = 0; r< ROWS; r++){ // change this so that the bigger value bet. ROWS & cols will be the basis
-
-			final LinkedList<Integer> rowMatches = getMatchesFromArray(buttons[r]);
-			final LinkedList<Integer> colMatches = getMatchesFromArray(getColumnFromButtons(r));
-
-			newMatchChecker += (rowMatches.size() / 2) + (colMatches.size() / 2);
-
-			final int temp = r;
-
-			rowchecker[r] = new Runnable() {
-	            public void run() { //for constantly receiving messages from server
-	                if(rowMatches.size() > 0){ //get matches from each row
-						for(int a = 0; a < rowMatches.size(); a++){
-							if(a % 2 == 0){ 
-								int startIndex = rowMatches.get(a);
-								int endIndex = startIndex + rowMatches.get(a+1) -1;
-
-								//replace the duplicates with new images
-								for(int b = startIndex; b <= endIndex; b++){
-									buttons[temp][b].setEnabled(false);
-								}
-								// stopwatch[temp][a/2] = new Timer(SEC * 1000, new EnableListener(buttons));
-								// stopwatch[temp][a/2].setRepeats(false);
-								// stopwatch[temp][a/2].start();
-
-								final Timer stopwatch = new Timer(SEC * 1000, new EnableListener(buttons));
-								stopwatch.setRepeats(false);
-								stopwatch.start();
-								// new Timer(SEC * 1000, new EnableListener(buttons)).start();
-								// stopwatch[temp].join();
-
-								for(int i = endIndex, j = startIndex-1; j >= 0; i--, j--){
-									buttons[temp][i].setIcon(buttons[temp][j].getIcon());
-								}
-
-								for(int b = endIndex - startIndex; b >= 0; b--){
-									buttons[temp][b].setIcon(generateRandomImage());
-								}
-
-								for(int i = startIndex; i <= endIndex; i++){
-									for(int j = temp; j > 0; j--){
-										buttons[j][i].setIcon(buttons[j-1][i].getIcon());
-									}
-									buttons[0][i].setIcon(generateRandomImage());
-								}
-								// for(int b = startIndex; b <= endIndex; b++){
-								// 	buttons[temp][b].setIcon(generateRandomImage());
-								// }
-
-
-								removeAll();
-								for(int i=0; i<ROWS; i++){
-									for(int j=0; j<COLS; j++){
-										add(buttons[i][j]);
-									}
-								}
-								revalidate();
-								repaint();
-							}
-						}
-					}
-	            }
-	        };
-
-	        colchecker[r] = new Runnable() {
-	            public void run() { //for constantly receiving messages from server
-	                if(colMatches.size() > 0){ //get matches from each column
-						for(int a = 0; a < colMatches.size(); a++){
-							if(a % 2 == 0){ 
-								int startIndex = colMatches.get(a);
-								int endIndex = startIndex + colMatches.get(a+1) -1;
-
-								//replace the duplicates with new images
-								for(int b = startIndex; b <= endIndex; b++){
-									buttons[b][temp].setEnabled(false);
-								}
-								// stopwatch[temp + ROWS][a/2] = new Timer(SEC * 1000, new EnableListener(buttons));
-								// stopwatch[temp + ROWS][a/2].setRepeats(false);
-								// stopwatch[temp + ROWS][a/2].start();
-
-								final Timer stopwatch = new Timer(SEC * 1000, new EnableListener(buttons));
-								stopwatch.setRepeats(false);
-								stopwatch.start();
-								// new Timer(SEC * 1000, new EnableListener(buttons)).start();
-								// stopwatch[temp + ROWS].join();
-								// for(int b = startIndex; b <= endIndex; b++){
-								// 	buttons[b][temp].setIcon(generateRandomImage());
-								// }
-
-								for(int i = endIndex, j = startIndex-1; j >= 0; i--, j--){
-									buttons[i][temp].setIcon(buttons[j][temp].getIcon());
-								}
-
-								for(int b = endIndex - startIndex; b >= 0; b--){
-									buttons[b][temp].setIcon(generateRandomImage());
-								}
-
-								removeAll();
-								for(int i=0; i<ROWS; i++){
-									for(int j=0; j<COLS; j++){
-										add(buttons[i][j]);
-									}
-								}
-								revalidate();
-								repaint();
-							}
-						}
-					}
-	            }
-	        };
-
-	        rowcheckerThread[r] = new Thread(rowchecker[r]);
-	        colcheckerThread[r] = new Thread(colchecker[r]);
-
-	        rowcheckerThread[r].start();
-	        colcheckerThread[r].start();
-	    }
-		
-		try{
-			for(int i = 0; i<ROWS; i+=1){
-				rowcheckerThread[i].join();
-				colcheckerThread[i].join();
-			} 
-		}catch(InterruptedException e){
-			e.printStackTrace();
-		}
-
-		if(matchChecker == newMatchChecker){
-			return false;
-		}else{
-			matchChecker = newMatchChecker;
-			return true;
-		}
-	}
-
+	// reenables button after a specific amount of time
 	class EnableListener implements ActionListener{
 		JComponent[][] target = new JComponent[ROWS][COLS];
 
@@ -973,7 +1013,6 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 
 		this.setSize(500,400);
 		this.setLocation(200,300);
-		//g.drawImage(img, 0, 0, null);
 
 		g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON); //to avoid pixelation
 	}
@@ -1011,3 +1050,4 @@ class JoinButton extends JButton{ //button in MenuPanel
 
 	}
 }
+
