@@ -3,6 +3,7 @@ import java.io.*;
 import java.util.*;
 import java.awt.*;
 import javax.swing.JButton;
+import javax.swing.BoxLayout;
 import javax.swing.JTextField;
 import javax.swing.JTextArea;
 import javax.swing.JLabel;
@@ -238,7 +239,7 @@ class UDPClient implements Constants{
 								model.levelUp();
 								TimerPanel timerPanel = new TimerPanel(model);
 								model.getGame().remove(model.getTimer());
-								model.getGame().add(timerPanel, BorderLayout.CENTER);			
+								model.getGame().add(timerPanel, BorderLayout.EAST);			
 								model.getGame().revalidate();
 								model.getGame().repaint();
 								model.setTimer(timerPanel);
@@ -564,8 +565,6 @@ class ScorePanel extends JPanel{
 	}
 	public void paintComponent(Graphics g) {
 	  	Graphics2D g2d = (Graphics2D)g;
-	  	//this.setLocation(80,400);
-	  	//this.setSize(200, 100);
   	}
 
 }
@@ -616,7 +615,7 @@ class TimerPanel extends JPanel implements Runnable, Constants{
             });
             try { 
             	Thread.sleep(1000);
-            	System.out.println("\t\t\t" + time);
+            	System.out.println("\t\t\t\t\t\t\t" + time);
 		        this.revalidate();
 		        this.repaint();
             	t -= 1;
@@ -686,7 +685,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 		scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 
 	    final JTextField userInputField = new JTextField(30);
-	    //userInputField.setSize(200,100);
+	    userInputField.setSize(600,130);
 		
 		userInputField.addActionListener(new ActionListener(){
 		    public void actionPerformed(ActionEvent event){
@@ -707,12 +706,11 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 		});
 
 		eastContainer = new JPanel();
-		eastContainer.setSize(new Dimension(200,100));
+		eastContainer.setPreferredSize(new Dimension(350,400));
 		eastContainer.setLayout(new BorderLayout());
 		
 		chatContainer.add(scroll,BorderLayout.CENTER);
 		chatContainer.add(userInputField, BorderLayout.SOUTH);
-		chatContainer.setLocation(10, 10);
 		eastContainer.add(chatContainer, BorderLayout.CENTER);
 		//this.add(eastContainer, BorderLayout.EAST);	    
 	}
@@ -728,7 +726,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 			final Runnable checker = new Runnable() {
 	            public void run() { //for constantly receiving messages from server
 	                while(true){
-						// System.out.println("yes");
+						System.out.println("yes");
 						if(tcpClient.isFinished()) break;
 						String msg = model.getLatestTCPMessage();
 						if(msg != null){
@@ -760,9 +758,9 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 			model.setTimer(timerPanel);
 
 			container = new JPanel();
-			container.setSize(new Dimension(200,100));
-			container.setLayout(new BorderLayout());
-		
+			container.setSize(new Dimension(200,620));
+			BoxLayout boxlayout = new BoxLayout(container, BoxLayout.Y_AXIS);
+			container.setLayout(boxlayout);
 
 			// @UITEAM: pls fix postioning nito, kaya nagbblink yung gawa kong gui ay dahil sa maling positioning
 			// make sure po na kita yung chatArea, timerPanel, scorePanel, gameProperPanel, at playersPanel. Maskiw ag na yung quit chat :)
@@ -771,9 +769,12 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 			// pacheck na lang if gumagana yung pagreplace ng timerpanel. basta dapat every level bumabalik sa timelimit
 			
 			this.add(gameProper, BorderLayout.WEST);
-			container.add(timerPanel, BorderLayout.NORTH);
-			container.add(eastContainer, BorderLayout.CENTER);
-			container.add(scorePanel, BorderLayout.SOUTH);
+			timerPanel.setMaximumSize( timerPanel.getPreferredSize() );
+			eastContainer.setMaximumSize( eastContainer.getPreferredSize() );
+			scorePanel.setMaximumSize( scorePanel.getPreferredSize() );
+			container.add(timerPanel);
+			container.add(scorePanel);
+			container.add(eastContainer);
 			this.add(container, BorderLayout.EAST);
 			
 			timerPanel.start();
