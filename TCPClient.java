@@ -217,7 +217,6 @@ class UDPClient implements Constants{
 					        	// painclude po ng name, score. at level na naachieve ni user
 					        	//wag na bigyan ng options si user, ipaclose na yung window kasi di naman magrerestart server pag nag new game sya.
 					        	System.out.println("\t\t=============YOU WIN!!!==================");
-					        	model.getGame().setVisible(false);
 								model.getFrame().showWinnerPanel();
 					        }
 
@@ -750,7 +749,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 		});
 
 		eastContainer = new JPanel();
-		eastContainer.setPreferredSize(new Dimension(350,400));
+		eastContainer.setPreferredSize(new Dimension(350,350));
 		eastContainer.setLayout(new BorderLayout());
 		
 		chatContainer.add(scroll,BorderLayout.CENTER);
@@ -789,6 +788,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 			PlayersPanel playersPanel = new PlayersPanel(model);
 			model.setPlayersPanel(playersPanel);
 
+
 			tcpClient.run(this.model);
 			udpClient.run(this.model);
 			
@@ -800,6 +800,8 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 
 			TimerPanel timerPanel = new TimerPanel(model);
 			model.setTimer(timerPanel);
+
+			MyPlayerPanel myPlayerPanel = new MyPlayerPanel(model);
 
 			container = new JPanel();
 			container.setSize(new Dimension(200,620));
@@ -816,7 +818,9 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 			timerPanel.setMaximumSize( timerPanel.getPreferredSize() );
 			eastContainer.setMaximumSize( eastContainer.getPreferredSize() );
 			scorePanel.setMaximumSize( scorePanel.getPreferredSize() );
+			myPlayerPanel.setMaximumSize( myPlayerPanel.getPreferredSize() );
 			container.add(timerPanel);
+			container.add(myPlayerPanel);
 			container.add(scorePanel);
 			container.add(eastContainer);
 			this.add(container, BorderLayout.EAST);
@@ -1235,4 +1239,31 @@ class WinnerImagePanel extends JPanel{
         g.drawImage(logo, 0, 0, this); // see javadoc for more info on the parameters            
     }
 
+}
+
+class MyPlayerPanel extends JPanel{ 
+	private DataModel model;
+	private Image img;
+	private String name;
+	private int level;
+
+	public MyPlayerPanel(DataModel model){
+		img = new ImageIcon("bg.png").getImage();
+		Dimension size = new Dimension(380, 100);
+	    setSize(size);
+	    setLayout(null);
+
+		this.name = model.getNameOfClient();
+		this.level = model.getLevel();
+	}
+
+	public void paintComponent(Graphics g) {
+	  	Graphics2D g2d = (Graphics2D)g;
+    	
+    	g.drawImage(img, 0, 0, this);
+    	g.setColor(Color.WHITE);
+		g.setFont(new Font("Courier", Font.BOLD, 15));
+		g.drawString(name, 10, 50);
+		g.drawString("Level " + Integer.toString(level), 230, 50);
+  	}
 }
