@@ -1195,8 +1195,6 @@ class LogoImagePanel extends JPanel{
         g.drawImage(logo, 0, 0, this); // see javadoc for more info on the parameters            
     }
 
-<<<<<<< HEAD
-=======
 }
 
 class GameOverImagePanel extends JPanel{
@@ -1218,8 +1216,6 @@ class GameOverImagePanel extends JPanel{
 
 }
 
-<<<<<<< HEAD
-=======
 class GameOverImagePanel extends JPanel{
 	private Image logo; 
 
@@ -1257,8 +1253,4 @@ class WinnerImagePanel extends JPanel{
         g.drawImage(logo, 0, 0, this); // see javadoc for more info on the parameters            
     }
 
-<<<<<<< HEAD
->>>>>>> parent of 1b61bf6... Add files via upload
-=======
->>>>>>> parent of 1b61bf6... Add files via upload
 }
