@@ -295,6 +295,7 @@ class GameState implements Constants{
 	public int[] getColumn(int col){
 		int[] colArr = new int[ROWS];
 
+		
 		for(int i=0; i<ROWS; i++){
 			colArr[i] = this.board[i][col];
 		}
@@ -352,7 +353,7 @@ class GameState implements Constants{
 		int matchChecker = 0;
 		int newMatchChecker = matchChecker;
 
-	    for(int r = 0; r< ROWS; r++){ // change this so that the bigger value bet. ROWS & cols will be the basis
+	    for(int r = 0; r< COLS; r++){ // change this so that the bigger value bet. ROWS & cols will be the basis
 
 			final LinkedList<Integer> rowMatches = getMatchesFromArray(this.board[r]);
 			final LinkedList<Integer> colMatches = getMatchesFromArray(getColumn(r));
@@ -427,7 +428,7 @@ class GameState implements Constants{
 	    }
 		
 		try{
-			for(int i = 0; i<ROWS; i+=1){
+			for(int i = 0; i<COLS; i+=1){
 				rowcheckerThread[i].join();
 				colcheckerThread[i].join();
 			} 

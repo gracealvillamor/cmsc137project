@@ -3,6 +3,7 @@ import java.io.*;
 import java.util.*;
 import java.awt.*;
 import javax.swing.JButton;
+import javax.swing.BoxLayout;
 import javax.swing.JTextField;
 import javax.swing.JTextArea;
 import javax.swing.JLabel;
@@ -28,7 +29,7 @@ public class TCPClient{
 
 		MainFrame frame = new MainFrame();
 
-		frame.setTitle("Title ng game hehe");
+		frame.setTitle("ICS na Match!");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
 		frame.setResizable(false);
@@ -235,14 +236,14 @@ class UDPClient implements Constants{
 								//wag na bigyan ng options si user, ipaclose na yung window kasi di naman magrerestart server pag nag new game sya.
 							}else{
 								// @UITEAM: remove previous timerPanel from gamePanel and add a new timerPanel
+								
 								model.levelUp();
 								TimerPanel timerPanel = new TimerPanel(model);
-								model.getGame().remove(model.getTimer());
-								model.getGame().add(timerPanel, BorderLayout.CENTER);			
-								model.getGame().revalidate();
-								model.getGame().repaint();
-								model.setTimer(timerPanel);
-								timerPanel.start();
+								model.getTimer().stop();
+								model.getTimer().start();
+								
+								
+								
 							}
 						}
 					}
@@ -473,11 +474,16 @@ class MenuPanel extends JPanel{
 	    setSize(size);
 	    setLayout(null);
 
+	    LogoImagePanel logo = new LogoImagePanel();
+		
 		nameField = new JTextField("Enter your name",100);
 		Font bigFont = nameField.getFont().deriveFont(Font.PLAIN, 20f);
     	nameField.setFont(bigFont);
 		nameField.setSize(600,40);
-		nameField.setLocation(100, 200);
+		nameField.setLocation(100, 230);
+    	
+    	logo.setLocation(175, 10);
+    	this.add(logo);
     	this.add(nameField);
 	}
 
@@ -542,7 +548,7 @@ class ScorePanel extends JPanel{
 
 		//@UITEAM: pasama na rin po sa iimprove, pag mahaba kasi yung name ng users
 		//lumalaki din yung scoreArea, hindi sya maganda tingnan. 
-		scoreArea = new JTextArea(10, 5);
+		scoreArea = new JTextArea(10, 30);
 		this.add(scoreArea);
 	}
 	public void updateScores(){
@@ -559,7 +565,6 @@ class ScorePanel extends JPanel{
 	}
 	public void paintComponent(Graphics g) {
 	  	Graphics2D g2d = (Graphics2D)g;
-	  	this.setLocation(80,400);
   	}
 
 }
@@ -576,15 +581,15 @@ class TimerPanel extends JPanel implements Runnable, Constants{
 
 	public TimerPanel(DataModel model){
 
-		img = new ImageIcon("time-bg.png").getImage();
-	    Dimension size = new Dimension(img.getWidth(null), img.getHeight(null));
+		img = new ImageIcon("bg.png").getImage();
+	    Dimension size = new Dimension(380, 40);
 	    setSize(size);
 	    setLayout(null);
 
 	    // @UITEAM: not really sure kung nagpapakita ba tong textArea na to,
 	    // pero ang intention ko sana talaga dito ay timer na may black na background
 	    // (yung time-bg.png). Anyway, paayos na lang din po itsura.
-	    JTextArea playersArea = new JTextArea(10, 5);
+	    JTextArea playersArea = new JTextArea(10, 35);
 		this.add(playersArea);
 
 		this.model = model;
@@ -610,7 +615,7 @@ class TimerPanel extends JPanel implements Runnable, Constants{
             });
             try { 
             	Thread.sleep(1000);
-            	System.out.println("\t\t\t" + time);
+            	System.out.println("\t\t\t\t\t\t\t" + time);
 		        this.revalidate();
 		        this.repaint();
             	t -= 1;
@@ -627,6 +632,14 @@ class TimerPanel extends JPanel implements Runnable, Constants{
 			T.start();
 		}
 	}
+	
+	public void stop(){
+		while(T != null){
+			T = null;
+		}
+		
+	}
+	
 	public void paintComponent(Graphics g) {
 	  	Graphics2D g2d = (Graphics2D)g;
     
@@ -636,7 +649,8 @@ class TimerPanel extends JPanel implements Runnable, Constants{
 		g.setFont(new Font("Courier", Font.BOLD, 25));
 		g.drawString(time, 30, 20);
 
-    	this.setLocation(80,400);
+    	this.setLocation(0,0);
+    	this.setSize(380,40);
   	}
 }
 
@@ -651,6 +665,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 	private JTextArea chatArea;
 	private JScrollPane scroll;
 	private GameProperPanel gameProper;
+	private JPanel eastContainer, chatContainer, gameContainer, container;
 	Thread T = null;
 
 	public GamePanel(DataModel model){
@@ -659,12 +674,16 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 	    setSize(size);
 	    setLayout(null);
 
-	    this.setLayout(new FlowLayout());
+	    this.setLayout(new BorderLayout());
 	    
 
 	    this.model = model;
 
-	    chatArea = new JTextArea(10, 50);
+	    chatContainer = new JPanel();
+		chatContainer.setSize(new Dimension(200,100));
+		chatContainer.setLayout(new BorderLayout());
+
+	    chatArea = new JTextArea(10, 32);
 	    chatArea.setLineWrap(true);
 	    chatArea.setWrapStyleWord(true);
 	    chatArea.setEditable(false);
@@ -672,11 +691,10 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 	    scroll = new JScrollPane(chatArea);
 		// scroll.setPreferredSize(new Dimension(700,100));
 		scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-	    
 
 	    final JTextField userInputField = new JTextField(30);
-	    userInputField.setSize(600,40);
-		userInputField.setLocation(100, 200);
+	    userInputField.setSize(600,130);
+		
 		userInputField.addActionListener(new ActionListener(){
 		    public void actionPerformed(ActionEvent event){
 		        //We get the text from the textfield
@@ -695,9 +713,14 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 		    }
 		});
 
+		eastContainer = new JPanel();
+		eastContainer.setPreferredSize(new Dimension(350,400));
+		eastContainer.setLayout(new BorderLayout());
 		
-		this.add(scroll);
-		this.add(userInputField);	    
+		chatContainer.add(scroll,BorderLayout.CENTER);
+		chatContainer.add(userInputField, BorderLayout.SOUTH);
+		eastContainer.add(chatContainer, BorderLayout.CENTER);
+		//this.add(eastContainer, BorderLayout.EAST);	    
 	}
 	public void run(){
 
@@ -711,7 +734,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 			final Runnable checker = new Runnable() {
 	            public void run() { //for constantly receiving messages from server
 	                while(true){
-						// System.out.println("yes");
+						System.out.println("yes");
 						if(tcpClient.isFinished()) break;
 						String msg = model.getLatestTCPMessage();
 						if(msg != null){
@@ -742,16 +765,25 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 			TimerPanel timerPanel = new TimerPanel(model);
 			model.setTimer(timerPanel);
 
+			container = new JPanel();
+			container.setSize(new Dimension(200,620));
+			BoxLayout boxlayout = new BoxLayout(container, BoxLayout.Y_AXIS);
+			container.setLayout(boxlayout);
+
 			// @UITEAM: pls fix postioning nito, kaya nagbblink yung gawa kong gui ay dahil sa maling positioning
 			// make sure po na kita yung chatArea, timerPanel, scorePanel, gameProperPanel, at playersPanel. Maskiw ag na yung quit chat :)
 			// ps: yung timerPanel pala ay nirereplace kada new round, thread kasi yung timerPanel, hindi narerevive kailangan ireplace
 			// makikita ang pagreplace ng timerPanel sa may ELIMINATE na packet na rereceive
 			// pacheck na lang if gumagana yung pagreplace ng timerpanel. basta dapat every level bumabalik sa timelimit
 			
-			this.add(gameProper, BorderLayout.CENTER);
-			this.add(scorePanel, BorderLayout.CENTER);
-			this.add(timerPanel, BorderLayout.CENTER);
-			this.add(playersPanel, BorderLayout.CENTER);
+			this.add(gameProper, BorderLayout.WEST);
+			timerPanel.setMaximumSize( timerPanel.getPreferredSize() );
+			eastContainer.setMaximumSize( eastContainer.getPreferredSize() );
+			scorePanel.setMaximumSize( scorePanel.getPreferredSize() );
+			container.add(timerPanel);
+			container.add(scorePanel);
+			container.add(eastContainer);
+			this.add(container, BorderLayout.EAST);
 			
 			timerPanel.start();
 
@@ -769,9 +801,6 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 	  	Graphics2D g2d = (Graphics2D)g;
     
     	g.drawImage(img, 0, 0, null);
-	    
-	    g.drawString("Game panel", 270, 310);
-
   	}
 }
 
@@ -781,10 +810,30 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 class GameProperPanel extends JPanel implements ActionListener, Constants{
 	private final JButton[][] buttons = new JButton[ROWS][COLS];
 
-	private final ImageIcon i1 = new ImageIcon("i1.png");
-	private final ImageIcon i2 = new ImageIcon("i2.png");
-	private final ImageIcon i3 = new ImageIcon("i3.png");
-	private final ImageIcon i4 = new ImageIcon("i4.png");
+	ImageIcon icon1 = new ImageIcon("i1.png");
+	Image img1 = icon1.getImage();
+	Image newimg1 = img1.getScaledInstance(35, 35, java.awt.Image.SCALE_SMOOTH);
+	ImageIcon i1 = new ImageIcon(newimg1);
+
+	ImageIcon icon2 = new ImageIcon("i2.png");
+	Image img2 = icon2.getImage();
+	Image newimg2 = img2.getScaledInstance(35, 35, java.awt.Image.SCALE_SMOOTH);
+	ImageIcon i2 = new ImageIcon(newimg2);
+
+	ImageIcon icon3 = new ImageIcon("i3.png");
+	Image img3 = icon3.getImage();
+	Image newimg3 = img3.getScaledInstance(35, 35, java.awt.Image.SCALE_SMOOTH);
+	ImageIcon i3 = new ImageIcon(newimg3);
+
+	ImageIcon icon4 = new ImageIcon("i4.png");
+	Image img4 = icon4.getImage();
+	Image newimg4 = img4.getScaledInstance(35, 35, java.awt.Image.SCALE_SMOOTH);
+	ImageIcon i4 = new ImageIcon(newimg4);
+
+	ImageIcon icon5 = new ImageIcon("i5.png");
+	Image img5 = icon5.getImage();
+	Image newimg5 = img5.getScaledInstance(35, 35, java.awt.Image.SCALE_SMOOTH);
+	ImageIcon i5 = new ImageIcon(newimg5);
 
 	private UDPClient udpClient;
 	private DataModel model;
@@ -804,6 +853,10 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 			for(int j=0; j<COLS; j++){
 				buttons[i][j] = new JButton(generateImage(model.getInitialBoard()[i][j]));
 				buttons[i][j].addActionListener(this);
+				buttons[i][j].setOpaque(false);
+				buttons[i][j].setBorderPainted(false);
+				buttons[i][j].setContentAreaFilled(false);
+				buttons[i][j].setMargin(new Insets(25, 25, 25, 25));
 			}
 		}
 
@@ -1011,8 +1064,9 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 	public void paintComponent(Graphics g) {
 		Graphics2D g2d = (Graphics2D)g;
 
-		this.setSize(500,400);
-		this.setLocation(200,300);
+		this.setSize(806,640);
+		//this.setSize(500,400);
+		//this.setLocation(200,300);
 
 		g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON); //to avoid pixelation
 	}
@@ -1051,3 +1105,21 @@ class JoinButton extends JButton{ //button in MenuPanel
 	}
 }
 
+class LogoImagePanel extends JPanel{
+	private Image logo; 
+
+	public LogoImagePanel(){
+		logo = new ImageIcon("logo.png").getImage();
+		Dimension size = new Dimension(logo.getWidth(null), logo.getHeight(null));
+	    setSize(size);
+	    setLayout(null);
+	}
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        this.setSize(480,200);
+        g.drawImage(logo, 0, 0, this); // see javadoc for more info on the parameters            
+    }
+
+}

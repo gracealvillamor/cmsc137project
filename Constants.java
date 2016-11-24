@@ -2,7 +2,7 @@ public interface Constants {
 	/**
 	 * Number of rows and columns of the game grid
 	 */
-	public static final int ROWS=5;
+	public static final int ROWS=12;
 	public static final int COLS=5;
 
 	/**
@@ -29,6 +29,6 @@ public interface Constants {
 
 
 
-	String SERVER_ADDRESS="192.168.56.1";
+	String SERVER_ADDRESS="10.0.4.238";
 
 }
