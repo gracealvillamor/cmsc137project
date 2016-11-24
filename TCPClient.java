@@ -1218,6 +1218,28 @@ class GameOverImagePanel extends JPanel{
 
 }
 
+<<<<<<< HEAD
+=======
+class GameOverImagePanel extends JPanel{
+	private Image logo; 
+
+	public GameOverImagePanel(){
+		logo = new ImageIcon("gameover.png").getImage();
+		Dimension size = new Dimension(logo.getWidth(null), logo.getHeight(null));
+	    setSize(size);
+	    setLayout(null);
+	}
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        this.setSize(350,260);
+        g.drawImage(logo, 0, 0, this); // see javadoc for more info on the parameters            
+    }
+
+}
+
+>>>>>>> parent of 1b61bf6... Add files via upload
 class WinnerImagePanel extends JPanel{
 	private Image logo; 
 
@@ -1235,5 +1257,8 @@ class WinnerImagePanel extends JPanel{
         g.drawImage(logo, 0, 0, this); // see javadoc for more info on the parameters            
     }
 
+<<<<<<< HEAD
+>>>>>>> parent of 1b61bf6... Add files via upload
+=======
 >>>>>>> parent of 1b61bf6... Add files via upload
 }
