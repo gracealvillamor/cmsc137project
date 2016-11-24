@@ -24,7 +24,9 @@ import java.text.*;
  */
 public class TCPClient{
 	private boolean isFinished = false;
+
 	public static void main(String[] args) throws Exception{
+
 		MainFrame frame = new MainFrame();
 
 		frame.setTitle("ICS na Match!");
@@ -207,8 +209,6 @@ class UDPClient implements Constants{
 
 							System.out.println("!!!\t" + serverData + "!!!\t");
 							for(int i = 1; i < size; i++){
-								
-
 								players.put(data[i].split(":")[0], Integer.parseInt(data[i].split(":")[1]));
 							}
 
@@ -217,8 +217,6 @@ class UDPClient implements Constants{
 					        	// painclude po ng name, score. at level na naachieve ni user
 					        	//wag na bigyan ng options si user, ipaclose na yung window kasi di naman magrerestart server pag nag new game sya.
 					        	System.out.println("\t\t=============YOU WIN!!!==================");
-					        	model.getGame().setVisible(false);
-								model.getFrame().showWinnerPanel();
 					        }
 
 					        model.setScores(players);
@@ -236,19 +234,16 @@ class UDPClient implements Constants{
 								// painclude po ng name, score. at level na naachieve ni user
 								// wag na po lagyan ng click somewhere or press something to continue. 
 								//wag na bigyan ng options si user, ipaclose na yung window kasi di naman magrerestart server pag nag new game sya.
-								
-								model.getGame().setVisible(false);
-								model.getFrame().showGameOverPanel();
 							}else{
 								// @UITEAM: remove previous timerPanel from gamePanel and add a new timerPanel
+								
 								model.levelUp();
 								TimerPanel timerPanel = new TimerPanel(model);
-								model.getGame().remove(model.getTimer());
-								model.getGame().add(timerPanel, BorderLayout.EAST);			
-								model.getGame().revalidate();
-								model.getGame().repaint();
-								model.setTimer(timerPanel);
-								timerPanel.start();
+								model.getTimer().stop();
+								model.getTimer().start();
+								
+								
+								
 							}
 						}
 					}
@@ -277,8 +272,6 @@ class DataModel implements Constants{
 	private GameProperPanel game;
 	private ScorePanel scorePanel;
 	private PlayersPanel playersPanel;
-	private MainFrame mainFrame;
-	private CardLayout cardLayout;
 	private TimerPanel timer;
 	private Map players;
 	private int level = 1;
@@ -337,25 +330,7 @@ class DataModel implements Constants{
 			}
 		}
 	}
-	// puts the main frame used for all other panels
-	public void setFrame(MainFrame mainFrame){
-		this.mainFrame = mainFrame;
-	}
 
-	// gets the main frame used for all panels
-	public MainFrame getFrame(){
-		return this.mainFrame;
-	}
-
-	// puts the card layout used by the mainframe
-	public void setCardLayout(CardLayout layout){
-		this.cardLayout = layout;
-	}
-
-	// gets the card layout used in main frame
-	public CardLayout getCardLayout(){
-		return this.cardLayout;
-	}
 	// gets the initial board sent by the server
 	public int[][] getInitialBoard(){
 		return this.board;
@@ -430,7 +405,6 @@ class DataModel implements Constants{
 	public void levelUp(){
 		this.level += 1;
 	}
-
 }
 
 /**
@@ -439,23 +413,19 @@ class DataModel implements Constants{
 class MainFrame extends JFrame{
 	final JPanel cards;
 	final MenuPanel menuPanel;
-	final DataModel model;
 	final ResultPanel resultPanel;
-	final WinnerPanel winnerPanel;
-	private String status = "";
+	final DataModel model;
 	public MainFrame(){
 		model = new DataModel();
 		menuPanel = new MenuPanel(model);
 		resultPanel = new ResultPanel(model);
-		winnerPanel = new WinnerPanel(model);
 
 		cards = new JPanel(new CardLayout());
 		cards.setSize(new Dimension(800,640));
 		cards.setOpaque(true);
 
 		cards.add(menuPanel, "menu");
-	    cards.add(resultPanel, "result");
-	    cards.add(winnerPanel, "winner");
+		cards.add(resultPanel, "result");
 
 		actionMethods method = new actionMethods();
 
@@ -470,19 +440,9 @@ class MainFrame extends JFrame{
 		container.setPreferredSize(new Dimension(800,640));
 		container.add(cards, BorderLayout.CENTER);
 	}
-
-	public void showGameOverPanel() {
-			model.getCardLayout().show(cards, "result");
-	}
-
-	public void showWinnerPanel() {
-			model.getCardLayout().show(cards, "winner");
-	}
-
 	class actionMethods implements ActionListener{ 
 		public void actionPerformed(ActionEvent e){
 			CardLayout layout = (CardLayout)(cards.getLayout());
-			model.setCardLayout(layout);
 
 			if(e.getActionCommand().equals("join_game")){
 				System.out.println("join");
@@ -491,10 +451,8 @@ class MainFrame extends JFrame{
 				cards.add(gamePanel, "game");
 				layout.show(cards, "game");
 				gamePanel.start();
-			}else if(e.getActionCommand().equals("game_over")){
-				// ResultPanel resultPanel = new ResultPanel(model);
-				// cards.add(resultPanel, "result");
-				// layout.show(cards, "result");
+			}else if(e.getActionCommand().equals("quit_game")){
+				layout.show(cards, "menu");
 			}
 			
 		}
@@ -674,6 +632,14 @@ class TimerPanel extends JPanel implements Runnable, Constants{
 			T.start();
 		}
 	}
+	
+	public void stop(){
+		while(T != null){
+			T = null;
+		}
+		
+	}
+	
 	public void paintComponent(Graphics g) {
 	  	Graphics2D g2d = (Graphics2D)g;
     
@@ -1099,69 +1065,30 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 		Graphics2D g2d = (Graphics2D)g;
 
 		this.setSize(806,640);
+		//this.setSize(500,400);
+		//this.setLocation(200,300);
 
 		g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON); //to avoid pixelation
 	}
 
 }
-
 class ResultPanel extends JPanel{ //panel showing results
 
 	private Image img;
-	private DataModel model;
-	private String name;
 
 	public ResultPanel(DataModel model){
 		img = new ImageIcon("bg.png").getImage();
 		Dimension size = new Dimension(img.getWidth(null), img.getHeight(null));
 	    setSize(size);
 	    setLayout(null);
-
-	    this.model = model;
-
-	    GameOverImagePanel go = new GameOverImagePanel();
-	    name = model.getNameOfClient();
-
-	    go.setLocation(200, 10);
-    	this.add(go);
 	}
 	public void paintComponent(Graphics g) {
 	  	Graphics2D g2d = (Graphics2D)g;
     
     	g.drawImage(img, 0, 0, null);
-    	g.setColor(Color.WHITE);
-		g.setFont(new Font("Courier", Font.BOLD, 25));
-		g.drawString(name, 200, 300);
-  }
-}
+	    
+	    g.drawString("Result panel", 270, 310);
 
-class WinnerPanel extends JPanel{ //panel showing results
-
-	private Image img;
-	private DataModel model;
-	private String name;
-
-	public WinnerPanel(DataModel model){
-		img = new ImageIcon("bg.png").getImage();
-		Dimension size = new Dimension(img.getWidth(null), img.getHeight(null));
-	    setSize(size);
-	    setLayout(null);
-
-	    this.model = model;
-
-	    WinnerImagePanel go = new WinnerImagePanel();
-	    name = model.getNameOfClient();
-
-	    go.setLocation(120, 10);
-    	this.add(go);
-	}
-	public void paintComponent(Graphics g) {
-	  	Graphics2D g2d = (Graphics2D)g;
-    
-    	g.drawImage(img, 0, 0, null);
-    	g.setColor(Color.WHITE);
-		g.setFont(new Font("Courier", Font.BOLD, 25));
-		g.drawString(name, 200, 300);
   }
 }
 
@@ -1192,44 +1119,6 @@ class LogoImagePanel extends JPanel{
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         this.setSize(480,200);
-        g.drawImage(logo, 0, 0, this); // see javadoc for more info on the parameters            
-    }
-
-}
-
-class GameOverImagePanel extends JPanel{
-	private Image logo; 
-
-	public GameOverImagePanel(){
-		logo = new ImageIcon("gameover.png").getImage();
-		Dimension size = new Dimension(logo.getWidth(null), logo.getHeight(null));
-	    setSize(size);
-	    setLayout(null);
-	}
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        this.setSize(350,260);
-        g.drawImage(logo, 0, 0, this); // see javadoc for more info on the parameters            
-    }
-
-}
-
-class WinnerImagePanel extends JPanel{
-	private Image logo; 
-
-	public WinnerImagePanel(){
-		logo = new ImageIcon("result.png").getImage();
-		Dimension size = new Dimension(logo.getWidth(null), logo.getHeight(null));
-	    setSize(size);
-	    setLayout(null);
-	}
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        this.setSize(560,180);
         g.drawImage(logo, 0, 0, this); // see javadoc for more info on the parameters            
     }
 
