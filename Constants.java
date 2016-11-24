@@ -29,6 +29,6 @@ public interface Constants {
 
 
 
-	String SERVER_ADDRESS="";
+	String SERVER_ADDRESS="10.0.4.138";
 
 }

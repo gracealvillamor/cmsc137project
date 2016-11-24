@@ -22,7 +22,7 @@ import java.text.*;
 /**
  * Class for sending and receiving chat messages to and fro the server.
  */
-public class TCPClient{
+public class TCPClient implements Constants{
 	private boolean isFinished = false;
 	public static void main(String[] args) throws Exception{
 		MainFrame frame = new MainFrame();
@@ -38,7 +38,7 @@ public class TCPClient{
 	}
 	public void run(DataModel model) throws Exception{
 		
-		final Socket SOCK = new Socket("localhost", 60010); //ip address of server and port to connect to
+		final Socket SOCK = new Socket(SERVER_ADDRESS, 60010); //ip address of server and port to connect to
 		final PrintStream OUT = new PrintStream(SOCK.getOutputStream());
 		final InputStreamReader reader = new InputStreamReader(SOCK.getInputStream());
 		final BufferedReader user = new BufferedReader(new InputStreamReader(System.in));
