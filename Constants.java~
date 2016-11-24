@@ -8,7 +8,7 @@ public interface Constants {
 	/**
 	 * Change number of players here
 	 */
-	public final int numplayers = 3;
+	public final int numplayers = 2;
 
     public final int SEC = 5; // number of seconds buttons will be disabled when correctly matched
     public final int TIME_LIMIT = 1; //number of minutes the timer for each level will last

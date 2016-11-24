@@ -242,13 +242,8 @@ class UDPClient implements Constants{
 							}else{
 								// @UITEAM: remove previous timerPanel from gamePanel and add a new timerPanel
 								model.levelUp();
-								TimerPanel timerPanel = new TimerPanel(model);
-								model.getGame().remove(model.getTimer());
-								model.getGame().add(timerPanel, BorderLayout.EAST);			
-								model.getGame().revalidate();
-								model.getGame().repaint();
-								model.setTimer(timerPanel);
-								timerPanel.start();
+								model.getTimer().stop();
+								model.getTimer().start();
 							}
 						}
 					}
