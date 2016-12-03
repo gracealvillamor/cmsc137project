@@ -25,7 +25,14 @@ import java.text.*;
 public class TCPClient implements Constants{
 	private boolean isFinished = false;
 	public static void main(String[] args) throws Exception{
-		MainFrame frame = new MainFrame();
+		if (args.length != 1){
+			System.out.println("Usage: java TCPClient <server address>");
+			System.exit(1);
+		}
+		
+		String SERVER_ADDRESS = args[0];
+
+		MainFrame frame = new MainFrame(SERVER_ADDRESS);
 
 		frame.setTitle("ICS na Match!");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -38,7 +45,7 @@ public class TCPClient implements Constants{
 	}
 	public void run(DataModel model) throws Exception{
 		
-		final Socket SOCK = new Socket(SERVER_ADDRESS, 60010); //ip address of server and port to connect to
+		final Socket SOCK = new Socket(model.getServerAddress(), 60010); //ip address of server and port to connect to
 		final PrintStream OUT = new PrintStream(SOCK.getOutputStream());
 		final InputStreamReader reader = new InputStreamReader(SOCK.getInputStream());
 		final BufferedReader user = new BufferedReader(new InputStreamReader(System.in));
@@ -130,6 +137,7 @@ class UDPClient implements Constants{
 	DatagramSocket socket;
 	boolean connected=false;
 	boolean isBoardReady = false;
+	String SERVER_ADDRESS;
 
 	//sends packet of data to the server
 	public void send(String msg){
@@ -149,6 +157,7 @@ class UDPClient implements Constants{
 	public void run(DataModel model) throws Exception{
 		
 		socket = new DatagramSocket();
+		SERVER_ADDRESS = model.getServerAddress();
 
 		//runnable for receiving packets of data from the server
 		final Runnable udpRunnable = new Runnable() {
@@ -241,6 +250,7 @@ class UDPClient implements Constants{
 							}else{
 								// @UITEAM: remove previous timerPanel from gamePanel and add a new timerPanel
 								model.levelUp();
+								model.getMyPlayerPanel().updateLevel();
 								model.getTimer().stop();
 								model.getTimer().start();
 							}
@@ -265,12 +275,14 @@ class DataModel implements Constants{
 	private String name = "";
 	private String latestTCPMessage, latestUDPMessage;
 	private String messageToSend;
+	private String serverAddress;
 	private int[][] board;
 	private UDPClient udpClient;
 	private TCPClient tcpClient;
 	private GameProperPanel game;
 	private ScorePanel scorePanel;
 	private PlayersPanel playersPanel;
+	private MyPlayerPanel myPlayerPanel;
 	private MainFrame mainFrame;
 	private CardLayout cardLayout;
 	private TimerPanel timer;
@@ -281,6 +293,16 @@ class DataModel implements Constants{
 	public DataModel(){
 		this.board = new int[ROWS][COLS];
 		this.state = IN_PROGRESS;
+	}
+
+	// set server address provided by user
+	public void setServerAddress(String serverAddress){
+		this.serverAddress = serverAddress;
+	}
+
+	// get address of server
+	public String getServerAddress(){
+		return this.serverAddress;
 	}
 
 	// set username of client
@@ -395,6 +417,14 @@ class DataModel implements Constants{
 		return this.playersPanel;
 	}
 
+	public void setMyPlayerPanel(MyPlayerPanel panel){
+		this.myPlayerPanel = panel;
+	}
+
+	public MyPlayerPanel getMyPlayerPanel(){
+		return this.myPlayerPanel;
+	}
+
 	// puts the UDPClient used for all the other classes to be able to access it
 	public void setUDPClient(UDPClient udpClient){
 		this.udpClient = udpClient;
@@ -437,11 +467,13 @@ class MainFrame extends JFrame{
 	final ResultPanel resultPanel;
 	final WinnerPanel winnerPanel;
 	private String status = "";
-	public MainFrame(){
+	public MainFrame(String serverAddress){
 		model = new DataModel();
 		menuPanel = new MenuPanel(model);
 		resultPanel = new ResultPanel(model);
 		winnerPanel = new WinnerPanel(model);
+
+		model.setServerAddress(serverAddress);
 
 		cards = new JPanel(new CardLayout());
 		cards.setSize(new Dimension(800,640));
@@ -802,6 +834,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 			model.setTimer(timerPanel);
 
 			MyPlayerPanel myPlayerPanel = new MyPlayerPanel(model);
+			model.setMyPlayerPanel(myPlayerPanel);
 
 			container = new JPanel();
 			container.setSize(new Dimension(200,620));
@@ -1257,6 +1290,10 @@ class MyPlayerPanel extends JPanel{
 		this.level = model.getLevel();
 	}
 
+	public void updateLevel(){
+		this.revalidate();
+		this.repaint();
+	}
 	public void paintComponent(Graphics g) {
 	  	Graphics2D g2d = (Graphics2D)g;
     	

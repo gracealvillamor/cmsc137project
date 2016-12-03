@@ -4,35 +4,47 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class TCPServer implements Constants{
+	private static int num_players;
+
 	public static void main(String[] args) throws Exception{
+		if (args.length != 1){
+			System.out.println("Usage: java TCPServer <number of players>");
+			System.exit(1);
+		}
 		
-		TCPServer tcpServer = new TCPServer();
-		UDPServer udpServer = new UDPServer();
+		num_players = Integer.parseInt(args[0]);
+
+		TCPServer tcpServer = new TCPServer(num_players);
+		UDPServer udpServer = new UDPServer(num_players);
 
 		tcpServer.run();
 		udpServer.run();
 	}
 	
-public void run() throws Exception{
+	public TCPServer(int num_players){
+		this.num_players = num_players;
+	}
 
-		// final int numplayers = 2; //number of players; must be changed
+	public void run() throws Exception{
+
+		// final int num_players = 2; //number of players; must be changed
 		ServerSocket SERVER = new ServerSocket(60010); //port to connect to
 
-		Socket[] SOCK = new Socket[numplayers];
-		InputStreamReader[] reader = new InputStreamReader[numplayers];
-		BufferedReader[] IN = new BufferedReader[numplayers];
-		PrintStream[] OUT = new PrintStream[numplayers];
-		final Runnable[] receiver = new Runnable[numplayers];
-		final Runnable[] checker = new Runnable[numplayers];
-		String[] name = new String[numplayers];
+		Socket[] SOCK = new Socket[num_players];
+		InputStreamReader[] reader = new InputStreamReader[num_players];
+		BufferedReader[] IN = new BufferedReader[num_players];
+		PrintStream[] OUT = new PrintStream[num_players];
+		final Runnable[] receiver = new Runnable[num_players];
+		final Runnable[] checker = new Runnable[num_players];
+		String[] name = new String[num_players];
 
 		final Runnable tcpRunnable = new Runnable() {
             public void run() {
-					// CountDownLatch doneSignal = new CountDownLatch(numplayers);
-					// CountDownLatch latch = new CountDownLatch(numplayers);
+					// CountDownLatch doneSignal = new CountDownLatch(num_players);
+					// CountDownLatch latch = new CountDownLatch(num_players);
 
 
-					for(int i = 0; i<numplayers; i+=1){
+					for(int i = 0; i<num_players; i+=1){
 						try{
 							SOCK[i] = SERVER.accept();
 							reader[i] = new InputStreamReader(SOCK[i].getInputStream());
@@ -54,7 +66,7 @@ public void run() throws Exception{
 												break;
 											} 
 											if(message != null){ //broadcasts message of client
-												for(int j = 0; j<numplayers; j+=1){
+												for(int j = 0; j<num_players; j+=1){
 														if(j!=f) OUT[j].println(name[f] + ": " + message);
 												}
 											}
@@ -69,9 +81,9 @@ public void run() throws Exception{
 						};
 					}
 					
-					final Thread[] receiverThread = new Thread[numplayers];
+					final Thread[] receiverThread = new Thread[num_players];
 
-					for(int i = 0; i<numplayers; i+=1){
+					for(int i = 0; i<num_players; i+=1){
 						receiverThread[i] = new Thread(receiver[i]);
 						receiverThread[i].start();
 						
@@ -81,11 +93,11 @@ public void run() throws Exception{
 
 					try{
 						//waits for all threads to terminate
-						for(int i = 0; i<numplayers; i+=1) receiverThread[i].join();
+						for(int i = 0; i<num_players; i+=1) receiverThread[i].join();
 					}catch(InterruptedException e){}
 
 					try{
-						for(int i = 0; i<numplayers; i+=1){ 
+						for(int i = 0; i<num_players; i+=1){ 
 							OUT[i].close();
 							IN[i].close();
 							SOCK[i].close();
@@ -104,6 +116,11 @@ class UDPServer implements Constants{
 	private GameState game;
 	private DatagramSocket serverSocket;
 	private int playerCount = 0;
+	private int num_players;
+
+	public UDPServer(int num_players){
+		this.num_players = num_players;
+	}
 
 	public void broadcast(String msg){
 		for(Iterator ite=game.getPlayers().keySet().iterator();ite.hasNext();){
@@ -167,15 +184,17 @@ class UDPServer implements Constants{
 								broadcast("CONNECTED "+tokens[1]);
 								playerCount++;
 
-								System.out.println("PLAYERS " + playerCount + "numplayers " + numplayers);
-								if (playerCount==numplayers){System.out.println("equality????");
+								System.out.println("PLAYERS " + playerCount + "num_players " + num_players);
+								if (playerCount==num_players){System.out.println("equality????");
 									gameStage=GAME_START;
 									System.out.println("Game State: START");
-									broadcast("START");
-									gameStage=IN_PROGRESS;
+									game.startTimer();
 									String arr = game.generateInitialBoard();
 									broadcast("INITIAL " + arr);
 									broadcast("SCORES:" + game.getStringPlayers());
+									broadcast("START-" +  game.getTime());
+									System.out.println("wooh");
+									gameStage=IN_PROGRESS;
 									//send random images array here
 								}
 							}
@@ -183,7 +202,13 @@ class UDPServer implements Constants{
 
 						case GAME_START:
 							System.out.println("Game State: START");
-							broadcast("START");
+
+							String arr = game.generateInitialBoard();
+							broadcast("INITIAL " + arr);
+							game.startTimer();
+							broadcast("START-" +  game.getTime());
+							broadcast("SCORES:" + game.getStringPlayers());
+
 							gameStage=IN_PROGRESS;
 							break;
 
@@ -209,12 +234,17 @@ class UDPServer implements Constants{
 							}else if(playerData.startsWith("TIMEUP")){
 								String[] playerInfo = playerData.split(" ");
 								if(game.getLevel() == Integer.parseInt(playerInfo[1])){
+									
 									broadcast("ELIMINATE:" + game.getLowestPlayer());
 									System.out.println("ELIMINATE:" + game.getLowestPlayer());
 									game.eliminateLowestPlayer();
+
 									broadcast("SCORES:" + game.getStringPlayers());
 									System.out.println("SCORES:" + game.getStringPlayers());
+
 									game.levelUp();
+									game.startTimer();
+									broadcast("START-" +  game.getTime());
 								}
 
 							}
@@ -238,6 +268,7 @@ class GameState implements Constants{
 	private int[][] board;
 	private int level = 1;
 	private String lowest = null;
+	private String time = TIME_LIMIT + ":00";
 	
 	/**
 	 * Simple constructor
@@ -513,6 +544,36 @@ class GameState implements Constants{
 			this.lowest = lowestPlayer.getName();
 
 		return this.lowest;
+	}
+	public void startTimer(){
+		new Thread(new Runnable(){
+			public void run(){
+				int timet = TIME_LIMIT * 60;
+				long delay = timet * 1000;
+
+			    do{
+			    	try{
+			    		int minutes = timet / 60;
+						int seconds = timet % 60;
+						// this.time = minutes + ":" + seconds + ":" + delay + ":" + timet;
+						setTime(minutes + ":" + seconds + ":" + delay + ":" + timet);
+						// System.out.println(minutes +" minute(s), " + seconds + " second(s)");
+						Thread.sleep(1000);
+						timet = timet - 1;
+						delay = delay - 1000;
+			    	}catch(Exception e){
+			    		e.getStackTrace();
+			    	}
+						
+			    }while (delay != 0);
+			}
+		}).start();
+	}
+	public void setTime(String time){
+		this.time = time;
+	}
+	public String getTime(){
+		return this.time;
 	}
 }
 
