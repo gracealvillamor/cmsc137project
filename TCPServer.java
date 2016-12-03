@@ -162,6 +162,8 @@ class UDPServer implements Constants{
 				game = new GameState();
 				int gameStage = WAITING_FOR_PLAYERS;
 
+				int playerTimeOut = 0;
+
 				while(true){System.out.println("PASOK BA");
 					byte[] buf = new byte[256];
 					DatagramPacket packet = new DatagramPacket(buf, buf.length);
@@ -233,7 +235,8 @@ class UDPServer implements Constants{
 				
 							}else if(playerData.startsWith("TIMEUP")){
 								String[] playerInfo = playerData.split(" ");
-								if(game.getLevel() == Integer.parseInt(playerInfo[1])){
+								playerTimeOut += 1;
+								if(game.getLevel() == Integer.parseInt(playerInfo[1]) && playerTimeOut == num_players){
 									
 									System.out.println("\n\n\t\t\t!!!!!!!!!!!!!!!!! LEVEL: " +game.getLevel()+"\n\n");
 									broadcast("ELIMINATE:" + game.getLowestPlayer());
