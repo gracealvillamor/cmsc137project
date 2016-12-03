@@ -235,6 +235,7 @@ class UDPServer implements Constants{
 								String[] playerInfo = playerData.split(" ");
 								if(game.getLevel() == Integer.parseInt(playerInfo[1])){
 									
+									System.out.println("\n\n\t\t\t!!!!!!!!!!!!!!!!! LEVEL: " +game.getLevel()+"\n\n");
 									broadcast("ELIMINATE:" + game.getLowestPlayer());
 									System.out.println("ELIMINATE:" + game.getLowestPlayer());
 									game.eliminateLowestPlayer();

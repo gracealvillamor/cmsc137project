@@ -250,7 +250,7 @@ class UDPClient implements Constants{
 							}else{
 								// @UITEAM: remove previous timerPanel from gamePanel and add a new timerPanel
 								model.levelUp();
-								model.getMyPlayerPanel().updateLevel();
+								// model.getMyPlayerPanel().updateLevel();
 								model.getTimer().stop();
 								model.getTimer().start();
 							}
@@ -279,6 +279,7 @@ class DataModel implements Constants{
 	private int[][] board;
 	private UDPClient udpClient;
 	private TCPClient tcpClient;
+	private GamePanel gamePanel;
 	private GameProperPanel game;
 	private ScorePanel scorePanel;
 	private PlayersPanel playersPanel;
@@ -387,6 +388,13 @@ class DataModel implements Constants{
 		return this.game;
 	}
 
+	public void setGamePanel(GamePanel panel){
+		this.gamePanel = panel;
+	}
+
+	public GamePanel getGamePanel(){
+		return this.gamePanel;
+	}
 	// puts the TimerPanel used for all the other classes to be able to access it
 	public void setTimer(TimerPanel timer){
 		this.timer = timer;
@@ -1286,13 +1294,17 @@ class MyPlayerPanel extends JPanel{
 	    setSize(size);
 	    setLayout(null);
 
+	    this.model = model;
 		this.name = model.getNameOfClient();
-		this.level = model.getLevel();
+		// this.level = model.getLevel();
 	}
 
 	public void updateLevel(){
 		this.revalidate();
 		this.repaint();
+		this.model.getGamePanel().revalidate();
+		this.model.getGamePanel().repaint();
+		System.out.println("\t\t\t\t!!! level = " + model.getLevel());
 	}
 	public void paintComponent(Graphics g) {
 	  	Graphics2D g2d = (Graphics2D)g;
@@ -1301,6 +1313,6 @@ class MyPlayerPanel extends JPanel{
     	g.setColor(Color.WHITE);
 		g.setFont(new Font("Courier", Font.BOLD, 15));
 		g.drawString(name, 10, 50);
-		g.drawString("Level " + Integer.toString(level), 230, 50);
+		g.drawString("Level " + model.getLevel(), 230, 50);
   	}
 }
