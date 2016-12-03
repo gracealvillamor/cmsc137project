@@ -691,7 +691,7 @@ class TimerPanel extends JPanel implements Runnable, Constants{
             });
             try { 
             	Thread.sleep(1000);
-            	System.out.println("\t\t\t\t\t\t\t" + time);
+            	// System.out.println("\t\t\t\t\t\t\t" + time);
 		        this.revalidate();
 		        this.repaint();
             	t -= 1;
