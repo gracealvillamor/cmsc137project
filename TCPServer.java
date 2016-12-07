@@ -277,6 +277,7 @@ class GameState implements Constants{
 	private int level = 1;
 	private String lowest = null;
 	private String time = TIME_LIMIT + ":00";
+	private int matchChecker, newMatchChecker;
 	
 	/**
 	 * Simple constructor
@@ -383,28 +384,126 @@ class GameState implements Constants{
 	public int getEquivalentScore(int count){
 		return ((count-2) * 10);
 	}
+	// public boolean removeMatches(UDPServer udpServer, NetPlayer player, boolean withScore){
+
+	// 	final Thread[] rowcheckerThread = new Thread[ROWS];
+	// 	final Thread[] colcheckerThread = new Thread[COLS];
+
+	// 	final Runnable[] rowchecker = new Runnable[ROWS];
+	// 	final Runnable[] colchecker = new Runnable[COLS];
+
+	// 	int matchChecker = 0;
+	// 	int newMatchChecker = matchChecker;
+
+	//     for(int r = 0; r< COLS; r++){ // change this so that the bigger value bet. ROWS & cols will be the basis
+
+	// 		final LinkedList<Integer> rowMatches = getMatchesFromArray(this.board[r]);
+	// 		final LinkedList<Integer> colMatches = getMatchesFromArray(getColumn(r));
+
+	// 		newMatchChecker += (rowMatches.size() / 2) + (colMatches.size() / 2);
+
+	// 		final int temp = r;
+
+	// 		rowchecker[r] = new Runnable() {
+	//             public void run() { //for constantly receiving messages from server
+	//                 if(rowMatches.size() > 0){ //get matches from each row
+	// 					for(int a = 0; a < rowMatches.size(); a++){
+	// 						if(a % 2 == 0){ 
+	// 							int startIndex = rowMatches.get(a);
+	// 							int endIndex = startIndex + rowMatches.get(a+1) -1;
+
+								
+	// 							for(int i = startIndex; i <= endIndex; i++){
+	// 								for(int j = temp; j > 0; j--){
+	// 									board[j][i] = board[j-1][i];
+	// 								}
+	// 								board[0][i] = (new Random()).nextInt(4) + 1;
+	// 							}
+
+	// 							if(withScore) {
+	// 								udpServer.broadcast("REMOVEROW " + temp + " " + startIndex + " " + endIndex + " " + stringify());
+	// 								player.updateScore(getEquivalentScore(endIndex - startIndex + 1));
+	// 								System.out.println("---diff: " + (endIndex - startIndex + 1) + "  ---eq: "+ getEquivalentScore(endIndex - startIndex + 1));
+	// 								udpServer.broadcast("SCORES:" + getStringPlayers());
+	// 							}
+	// 						}
+	// 					}
+	// 				}
+	//             }
+	//         };
+
+	//         colchecker[r] = new Runnable() {
+	//             public void run() { //for constantly receiving messages from server
+	//                 if(colMatches.size() > 0){ //get matches from each column
+	// 					for(int a = 0; a < colMatches.size(); a++){
+	// 						if(a % 2 == 0){ 
+	// 							int startIndex = colMatches.get(a);
+	// 							int endIndex = startIndex + colMatches.get(a+1) -1;
+								
+								
+	// 							for(int i = endIndex, j = startIndex-1; j >= 0; i--, j--){
+	// 								board[i][temp] = board[j][temp];
+	// 							}
+
+	// 							for(int b = endIndex - startIndex; b >= 0; b--){
+	// 								board[b][temp] = (new Random()).nextInt(4) + 1;
+	// 							}
+
+								
+	// 							if(withScore) {
+	// 								udpServer.broadcast("REMOVECOL " + temp + " " + startIndex + " " + endIndex + " " + stringify());
+	// 								player.updateScore(getEquivalentScore(endIndex - startIndex + 1));
+	// 								System.out.println("---diff: " + (endIndex - startIndex + 1) + "  ---eq: "+ getEquivalentScore(endIndex - startIndex + 1));
+	// 								udpServer.broadcast("SCORES:" + getStringPlayers());
+	// 							}
+	// 						}
+	// 					}
+	// 				}
+	//             }
+	//         };
+
+	//         rowcheckerThread[r] = new Thread(rowchecker[r]);
+	//         colcheckerThread[r] = new Thread(colchecker[r]);
+
+	//         rowcheckerThread[r].start();
+	//         colcheckerThread[r].start();
+	//     }
+		
+	// 	try{
+	// 		for(int i = 0; i<COLS; i+=1){
+	// 			rowcheckerThread[i].join();
+	// 			colcheckerThread[i].join();
+	// 		} 
+	// 	}catch(InterruptedException e){
+	// 		e.printStackTrace();
+	// 	}
+
+	// 	if(matchChecker == newMatchChecker){
+	// 		return false;
+	// 	}else{
+	// 		matchChecker = newMatchChecker;
+	// 		return true;
+	// 	}
+	// }
 	public boolean removeMatches(UDPServer udpServer, NetPlayer player, boolean withScore){
 
-		final Thread[] rowcheckerThread = new Thread[ROWS];
-		final Thread[] colcheckerThread = new Thread[COLS];
+		final Thread rowcheckerThread;
+		final Thread colcheckerThread;
 
-		final Runnable[] rowchecker = new Runnable[ROWS];
-		final Runnable[] colchecker = new Runnable[COLS];
+		final Runnable rowchecker;
+		final Runnable colchecker;
 
-		int matchChecker = 0;
-		int newMatchChecker = matchChecker;
+		matchChecker = 0;
+		newMatchChecker = matchChecker;
 
-	    for(int r = 0; r< COLS; r++){ // change this so that the bigger value bet. ROWS & cols will be the basis
+		rowchecker = new Runnable() {
+            public void run() { //for constantly receiving messages from server
+    			for(int r = 0; r< ROWS; r++){ // change this so that the bigger value bet. ROWS & cols will be the basis
+				
+					final LinkedList<Integer> rowMatches = getMatchesFromArray(board[r]);
+					
+					newMatchChecker += (rowMatches.size() / 2);
 
-			final LinkedList<Integer> rowMatches = getMatchesFromArray(this.board[r]);
-			final LinkedList<Integer> colMatches = getMatchesFromArray(getColumn(r));
-
-			newMatchChecker += (rowMatches.size() / 2) + (colMatches.size() / 2);
-
-			final int temp = r;
-
-			rowchecker[r] = new Runnable() {
-	            public void run() { //for constantly receiving messages from server
 	                if(rowMatches.size() > 0){ //get matches from each row
 						for(int a = 0; a < rowMatches.size(); a++){
 							if(a % 2 == 0){ 
@@ -413,14 +512,14 @@ class GameState implements Constants{
 
 								
 								for(int i = startIndex; i <= endIndex; i++){
-									for(int j = temp; j > 0; j--){
+									for(int j = r; j > 0; j--){
 										board[j][i] = board[j-1][i];
 									}
 									board[0][i] = (new Random()).nextInt(4) + 1;
 								}
 
 								if(withScore) {
-									udpServer.broadcast("REMOVEROW " + temp + " " + startIndex + " " + endIndex + " " + stringify());
+									udpServer.broadcast("REMOVEROW " + r + " " + startIndex + " " + endIndex + " " + stringify());
 									player.updateScore(getEquivalentScore(endIndex - startIndex + 1));
 									System.out.println("---diff: " + (endIndex - startIndex + 1) + "  ---eq: "+ getEquivalentScore(endIndex - startIndex + 1));
 									udpServer.broadcast("SCORES:" + getStringPlayers());
@@ -428,11 +527,18 @@ class GameState implements Constants{
 							}
 						}
 					}
-	            }
-	        };
+				}
+            }
+        };
 
-	        colchecker[r] = new Runnable() {
-	            public void run() { //for constantly receiving messages from server
+        colchecker = new Runnable() {
+            public void run() { //for constantly receiving messages from server
+    			for(int r = 0; r< COLS; r++){ // change this so that the bigger value bet. ROWS & cols will be the basis
+				
+					final LinkedList<Integer> colMatches = getMatchesFromArray(getColumn(r));
+	                
+					newMatchChecker += (colMatches.size() / 2);
+
 	                if(colMatches.size() > 0){ //get matches from each column
 						for(int a = 0; a < colMatches.size(); a++){
 							if(a % 2 == 0){ 
@@ -441,16 +547,16 @@ class GameState implements Constants{
 								
 								
 								for(int i = endIndex, j = startIndex-1; j >= 0; i--, j--){
-									board[i][temp] = board[j][temp];
+									board[i][r] = board[j][r];
 								}
 
 								for(int b = endIndex - startIndex; b >= 0; b--){
-									board[b][temp] = (new Random()).nextInt(4) + 1;
+									board[b][r] = (new Random()).nextInt(4) + 1;
 								}
 
 								
 								if(withScore) {
-									udpServer.broadcast("REMOVECOL " + temp + " " + startIndex + " " + endIndex + " " + stringify());
+									udpServer.broadcast("REMOVECOL " + r + " " + startIndex + " " + endIndex + " " + stringify());
 									player.updateScore(getEquivalentScore(endIndex - startIndex + 1));
 									System.out.println("---diff: " + (endIndex - startIndex + 1) + "  ---eq: "+ getEquivalentScore(endIndex - startIndex + 1));
 									udpServer.broadcast("SCORES:" + getStringPlayers());
@@ -458,21 +564,20 @@ class GameState implements Constants{
 							}
 						}
 					}
-	            }
-	        };
+				}
+            }
+        };
 
-	        rowcheckerThread[r] = new Thread(rowchecker[r]);
-	        colcheckerThread[r] = new Thread(colchecker[r]);
+        rowcheckerThread = new Thread(rowchecker);
+        colcheckerThread = new Thread(colchecker);
 
-	        rowcheckerThread[r].start();
-	        colcheckerThread[r].start();
-	    }
+        rowcheckerThread.start();
+        colcheckerThread.start();
+	    
 		
 		try{
-			for(int i = 0; i<COLS; i+=1){
-				rowcheckerThread[i].join();
-				colcheckerThread[i].join();
-			} 
+			rowcheckerThread.join();
+			colcheckerThread.join();
 		}catch(InterruptedException e){
 			e.printStackTrace();
 		}
