@@ -248,6 +248,8 @@ class UDPServer implements Constants{
 									broadcast("SCORES:" + game.getStringPlayers());
 									System.out.println("SCORES:" + game.getStringPlayers());
 
+									num_players -= 1; // decrement number of players
+
 									game.levelUp();
 									game.startTimer();
 									broadcast("START-" +  game.getTime());

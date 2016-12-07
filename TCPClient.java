@@ -545,21 +545,17 @@ class MenuPanel extends JPanel{
 
 	public MenuPanel(DataModel model){
 
-	    img = new ImageIcon("bg.png").getImage();
+	    img = new ImageIcon("logo.jpg").getImage();
 	    Dimension size = new Dimension(img.getWidth(null), img.getHeight(null));
 	    setSize(size);
 	    setLayout(null);
-
-	    LogoImagePanel logo = new LogoImagePanel();
 		
 		nameField = new JTextField("Enter your name",100);
 		Font bigFont = nameField.getFont().deriveFont(Font.PLAIN, 20f);
     	nameField.setFont(bigFont);
 		nameField.setSize(600,40);
-		nameField.setLocation(100, 230);
-    	
-    	logo.setLocation(175, 10);
-    	this.add(logo);
+		nameField.setLocation(100, 320);
+
     	this.add(nameField);
 	}
 
@@ -1014,6 +1010,10 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 
 	}
 
+	public void animateSwap(LinkedList<Integer> prev, LinkedList<Integer> current){
+
+	}
+
 	// generate image according to a given integer
 	public ImageIcon generateImage(int val){
 		switch(val){
@@ -1216,7 +1216,7 @@ class JoinButton extends JButton{ //button in MenuPanel
 	public JoinButton(){
 		super("Join Game!");
 		this.setSize(400,100);
-		this.setLocation(200, 280);
+		this.setLocation(200, 400);
 		this.setBackground(new Color(220, 84, 9));
 		this.setForeground(Color.WHITE);
 	   	this.setBorderPainted(false);
