@@ -289,6 +289,7 @@ class DataModel implements Constants{
 	private MainFrame mainFrame;
 	private CardLayout cardLayout;
 	private TimerPanel timer;
+	private Graphics g;
 	private Map players;
 	private int level = 1;
 	private int state;
@@ -465,6 +466,13 @@ class DataModel implements Constants{
 		this.level += 1;
 	}
 
+	public void setGraphics(Graphics g){
+		this.g = g;
+	}
+
+	public Graphics getGraphics(){
+		return this.g;
+	}
 }
 
 /**
@@ -882,6 +890,7 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 class Tile{
 	private ImageIcon icon;
 	private int row, col;
+	private Graphics g;
 
 	public Tile(ImageIcon icon, int row, int col){
 		this.icon = icon;
@@ -891,9 +900,16 @@ class Tile{
 	public ImageIcon getIcon(){
 		return this.icon;
 	}
+	public void setIcon(ImageIcon icon){
+		this.icon = icon;
+		// draw(this.g);
+	}
+	public void redraw(){
+		draw(this.g);
+	}
 	public void draw(Graphics g){
         Graphics2D g2 = (Graphics2D)g;
-
+        this.g = g;
     	this.icon.paintIcon(null, g, 10+this.col*63, 7+this.row*60);
 	}
 }
@@ -1010,12 +1026,15 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 						// send to server action of user
 						String stringIndices = "SWAP:" + previousIndices.get(0) + ":" +previousIndices.get(1);
 						stringIndices += "/" + indices.get(0) + ":" +indices.get(1) + ":" + model.getNameOfClient();
+						System.out.println("\n\n" + stringIndices + "\n\n");
 						this.udpClient.send(stringIndices);
 				} else{
 					// swapping buttons clicked by the user yields to no result; revert the swap
 					swapButtons(previousIndices, indices);
 				}
-				
+
+				model.getGraphics().clearRect(0, 0, getWidth(), getHeight());
+
 				this.removeAll();
 				for(int i=0; i<ROWS; i++){
 					for(int j=0; j<COLS; j++){
@@ -1024,6 +1043,11 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 				}
 				this.revalidate();
 				this.repaint();
+				for(int i=0; i<ROWS; i++){
+					for(int j=0; j<COLS; j++){
+						// tiles[i][j].redraw();
+					}
+				}
 			
 				clicks = 0;
 			}
@@ -1037,17 +1061,29 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 	public void setBoard(int[][] board){
 		for(int i=0; i<ROWS; i++){
 			for(int j=0; j<COLS; j++){
-				buttons[i][j].setIcon(generateImage(board[i][j]));
+				// buttons[i][j].setIcon(generateImage(board[i][j]));
+				tiles[i][j].setIcon(generateImage(board[i][j]));
 			}
 		}
 	}
 
 	// swaps previously clicked and just clicked buttons
+	// public void swapButtons(LinkedList<Integer> prev, LinkedList<Integer> current){
+	// 	// @UITEAM: kung kaya po, palagyan po ito ng effects na nagsswap :)
+	// 	JButton prevClickedButton = buttons[prev.get(0)][prev.get(1)];
+	// 	buttons[prev.get(0)][prev.get(1)] = buttons[current.get(0)][current.get(1)];
+	// 	buttons[current.get(0)][current.get(1)] = prevClickedButton;
+
+	// }
 	public void swapButtons(LinkedList<Integer> prev, LinkedList<Integer> current){
 		// @UITEAM: kung kaya po, palagyan po ito ng effects na nagsswap :)
 		JButton prevClickedButton = buttons[prev.get(0)][prev.get(1)];
 		buttons[prev.get(0)][prev.get(1)] = buttons[current.get(0)][current.get(1)];
 		buttons[current.get(0)][current.get(1)] = prevClickedButton;
+
+		Tile prevClickedTile = tiles[prev.get(0)][prev.get(1)];
+		tiles[prev.get(0)][prev.get(1)] = tiles[current.get(0)][current.get(1)];
+		tiles[current.get(0)][current.get(1)] = prevClickedTile;
 
 	}
 
@@ -1184,6 +1220,8 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 		stopwatch.start();
 
 		setBoard(getBoardFromString(board));
+		this.revalidate();
+		this.repaint();
 	}
 
 	// removes vertical matches
@@ -1199,6 +1237,8 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 		stopwatch.start();
 
 		setBoard(getBoardFromString(board));
+		this.revalidate();
+		this.repaint();
 	}
 
 	// reenables button after a specific amount of time
@@ -1226,6 +1266,7 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 		Graphics2D g2d = (Graphics2D)g;
 
 		drawTiles(g);
+		model.setGraphics(g);
 
 		this.setSize(806,640);
 
