@@ -2,8 +2,8 @@ public interface Constants {
 	/**
 	 * Number of rows and columns of the game grid
 	 */
-	public static final int ROWS=12;
-	public static final int COLS=5;
+	public static final int ROWS=10;
+	public static final int COLS=7;
 
 	/**
 	 * Change number of players here

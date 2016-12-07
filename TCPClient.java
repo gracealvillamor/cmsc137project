@@ -2,6 +2,7 @@ import java.net.*;
 import java.io.*;
 import java.util.*;
 import java.awt.*;
+import java.awt.geom.*;
 import javax.swing.JButton;
 import javax.swing.BoxLayout;
 import javax.swing.JTextField;
@@ -881,35 +882,54 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
   	}
 }
 
+class Tile{
+	private ImageIcon icon;
+	private int row, col;
+
+	public Tile(ImageIcon icon, int row, int col){
+		this.icon = icon;
+		this.row = row;
+		this.col = col;
+	}
+	public void draw(Graphics g){
+        Graphics2D g2 = (Graphics2D)g;
+
+    	this.icon.paintIcon(null, g, 10+this.col*63, 7+this.row*60);
+	}
+}
 /**
  * Panel containing all the game buttons
  */
 class GameProperPanel extends JPanel implements ActionListener, Constants{
 	private final JButton[][] buttons = new JButton[ROWS][COLS];
+	private final Image[][] buttonsImg = new Image[ROWS][COLS];
+	private final Tile[][] tiles = new Tile[ROWS][COLS];
+
+	int dimension = 52;
 
 	ImageIcon icon1 = new ImageIcon("i1.png");
 	Image img1 = icon1.getImage();
-	Image newimg1 = img1.getScaledInstance(35, 35, java.awt.Image.SCALE_SMOOTH);
+	Image newimg1 = img1.getScaledInstance(dimension, dimension, java.awt.Image.SCALE_SMOOTH);
 	ImageIcon i1 = new ImageIcon(newimg1);
 
 	ImageIcon icon2 = new ImageIcon("i2.png");
 	Image img2 = icon2.getImage();
-	Image newimg2 = img2.getScaledInstance(35, 35, java.awt.Image.SCALE_SMOOTH);
+	Image newimg2 = img2.getScaledInstance(dimension, dimension, java.awt.Image.SCALE_SMOOTH);
 	ImageIcon i2 = new ImageIcon(newimg2);
 
 	ImageIcon icon3 = new ImageIcon("i3.png");
 	Image img3 = icon3.getImage();
-	Image newimg3 = img3.getScaledInstance(35, 35, java.awt.Image.SCALE_SMOOTH);
+	Image newimg3 = img3.getScaledInstance(dimension, dimension, java.awt.Image.SCALE_SMOOTH);
 	ImageIcon i3 = new ImageIcon(newimg3);
 
 	ImageIcon icon4 = new ImageIcon("i4.png");
 	Image img4 = icon4.getImage();
-	Image newimg4 = img4.getScaledInstance(35, 35, java.awt.Image.SCALE_SMOOTH);
+	Image newimg4 = img4.getScaledInstance(dimension, dimension, java.awt.Image.SCALE_SMOOTH);
 	ImageIcon i4 = new ImageIcon(newimg4);
 
 	ImageIcon icon5 = new ImageIcon("i5.png");
 	Image img5 = icon5.getImage();
-	Image newimg5 = img5.getScaledInstance(35, 35, java.awt.Image.SCALE_SMOOTH);
+	Image newimg5 = img5.getScaledInstance(dimension, dimension, java.awt.Image.SCALE_SMOOTH);
 	ImageIcon i5 = new ImageIcon(newimg5);
 
 	private UDPClient udpClient;
@@ -928,19 +948,36 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 		// ganerates images for the board based on the initial board given by the server
 		for(int i=0; i<ROWS; i++){
 			for(int j=0; j<COLS; j++){
-				buttons[i][j] = new JButton(generateImage(model.getInitialBoard()[i][j]));
+				// buttons[i][j] = new JButton(generateImage(model.getInitialBoard()[i][j]));
+				buttons[i][j] = new JButton();
 				buttons[i][j].addActionListener(this);
 				buttons[i][j].setOpaque(false);
-				buttons[i][j].setBorderPainted(false);
+				// buttons[i][j].setBorderPainted(false);
 				buttons[i][j].setContentAreaFilled(false);
 				buttons[i][j].setMargin(new Insets(25, 25, 25, 25));
+				buttons[i][j].setSize(750,60);
+				this.add(buttons[i][j]);
+
+				// buttonsImg[i][j] = generateImage(model.getInitialBoard()[i][j]);
 			}
 		}
 
 		// add the buttons to the panel
+		// for(int i=0; i<ROWS; i++){
+		// 	for(int j=0; j<COLS; j++){
+		// 		this.add(buttons[i][j]);
+		// 		tiles[i][j] = new Tile(generateImage(model.getInitialBoard()[i][j]), i, j);
+		// 		tiles.draw
+		// 		// this.add(buttonsImg[i][j]);
+		// 	}
+		// }
+
+	}
+	public void drawTiles(Graphics g){
 		for(int i=0; i<ROWS; i++){
 			for(int j=0; j<COLS; j++){
-				this.add(buttons[i][j]);
+				tiles[i][j] = new Tile(generateImage(model.getInitialBoard()[i][j]), i, j);
+				tiles[i][j].draw(g);
 			}
 		}
 
@@ -1145,6 +1182,8 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 	public void paintComponent(Graphics g) {
 		Graphics2D g2d = (Graphics2D)g;
 
+		drawTiles(g);
+
 		this.setSize(806,640);
 
 		g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON); //to avoid pixelation
@@ -1224,6 +1263,59 @@ class JoinButton extends JButton{ //button in MenuPanel
 
 	}
 }
+// class JoinButton extends JButton{ //button in MenuPanel
+// 	public JoinButton(){
+// 	    super("Join Game!");
+
+// 		// These statements enlarge the button so that it 
+// 		// becomes a circle rather than an oval.
+// 	    Dimension size = getPreferredSize();
+// 	    size.width = size.height = Math.max(size.width, 
+// 	    size.height);
+// 	    setPreferredSize(size);
+// 	    setBackground(new Color(220, 84, 9));
+// 	    setForeground(Color.WHITE);
+// 		// This call causes the JButton not to paint 
+// 	   	// the background.
+// 		// This allows us to paint a round background.
+// 	    setContentAreaFilled(false);
+// 	}
+
+// 	// Paint the round background and label.
+// 	protected void paintComponent(Graphics g) {
+// 		if (getModel().isArmed()) {
+// 		// You might want to make the highlight color 
+// 		// a property of the RoundButton class.
+// 			g.setColor(Color.lightGray);
+// 		} else {
+// 			g.setColor(getBackground());
+// 		}
+// 		g.fillOval(0, 0, getSize().width-1, getSize().height-1);
+
+// 		// This call will paint the label and the 
+// 		// focus rectangle.
+// 		super.paintComponent(g);
+// 	}
+
+// 	// Paint the border of the button using a simple stroke.
+// 	protected void paintBorder(Graphics g) {
+// 		g.setColor(getForeground());
+// 		g.drawOval(0, 0, getSize().width-1, getSize().height-1);
+// 	}
+
+// 	// Hit detection.
+// 	Shape shape;
+// 	public boolean contains(int x, int y) {
+// 	// If the button has changed size, 
+// 	// make a new shape object.
+// 	if (shape == null || 
+// 	  !shape.getBounds().equals(getBounds())) {
+// 	  shape = new Ellipse2D.Float(0, 0, 
+// 	    getWidth(), getHeight());
+// 	}
+// 	return shape.contains(x, y);
+// 	}
+// }
 
 class LogoImagePanel extends JPanel{
 	private Image logo; 
