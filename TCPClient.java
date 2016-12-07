@@ -951,7 +951,7 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 				buttons[i][j].setOpaque(false);
 				// buttons[i][j].setBorderPainted(false);
 				buttons[i][j].setContentAreaFilled(false);
-				buttons[i][j].setMargin(new Insets(25, 25, 25, 25));
+				buttons[i][j].setMargin(new Insets(29, 29, 29, 29));
 				buttons[i][j].setSize(750,60);
 				this.add(buttons[i][j]);
 
