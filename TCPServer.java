@@ -237,7 +237,7 @@ class UDPServer implements Constants{
 								String[] playerInfo = playerData.split(" ");
 								playerTimeOut += 1;
 								// System.out.println("\n\nnumber of players TIMEUP: " + playerTimeOut + "\n");
-								if(game.getLevel() == Integer.parseInt(playerInfo[1]) && playerTimeOut == num_players){
+								if(game.getLevel() == Integer.parseInt(playerInfo[1]) && playerTimeOut == num_players && num_players > 1){
 									
 									playerTimeOut = 0;
 									System.out.println("\n\n\t\t\t!!!!!!!!!!!!!!!!! LEVEL: " +game.getLevel()+"\n\n");
