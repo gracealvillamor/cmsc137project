@@ -644,6 +644,7 @@ class GameState implements Constants{
 	}
 	public String getLowestPlayer(){
 		this.lowest = null;
+
 		NetPlayer lowestPlayer = (NetPlayer)players.get(players.keySet().toArray()[0]);
 
 		for(Iterator ite=players.keySet().iterator();ite.hasNext();){
