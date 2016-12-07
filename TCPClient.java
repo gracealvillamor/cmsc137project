@@ -888,6 +888,9 @@ class Tile{
 		this.row = row;
 		this.col = col;
 	}
+	public ImageIcon getIcon(){
+		return this.icon;
+	}
 	public void draw(Graphics g){
         Graphics2D g2 = (Graphics2D)g;
 
@@ -996,9 +999,13 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 				|| ((previousIndices.get(1) == indices.get(1)) && (Math.abs(previousIndices.get(0) - indices.get(0)) == 1))){
 				swapButtons(previousIndices, indices); //allow swapping of adjacent buttons only
 
-				if(getMatchesFromArray(buttons[previousIndices.get(0)]).size() > 0 ||
+				// if(getMatchesFromArray(buttons[previousIndices.get(0)]).size() > 0 ||
+				// 	getMatchesFromArray(getColumnFromButtons(previousIndices.get(1))).size() > 0 ||
+				// 	getMatchesFromArray(buttons[indices.get(0)]).size() > 0 ||
+				// 	getMatchesFromArray(getColumnFromButtons(indices.get(1))).size() > 0){
+				if(getMatchesFromArray(tiles[previousIndices.get(0)]).size() > 0 ||
 					getMatchesFromArray(getColumnFromButtons(previousIndices.get(1))).size() > 0 ||
-					getMatchesFromArray(buttons[indices.get(0)]).size() > 0 ||
+					getMatchesFromArray(tiles[indices.get(0)]).size() > 0 ||
 					getMatchesFromArray(getColumnFromButtons(indices.get(1))).size() > 0){
 						// send to server action of user
 						String stringIndices = "SWAP:" + previousIndices.get(0) + ":" +previousIndices.get(1);
@@ -1071,27 +1078,66 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 	}
 
 	// retrieves column of buttons
-	public JButton[] getColumnFromButtons(int col){
-		JButton[] colArr = new JButton[ROWS];
+	// public JButton[] getColumnFromButtons(int col){
+	// 	JButton[] colArr = new JButton[ROWS];
+
+	// 	for(int i=0; i<ROWS; i++){
+	// 		colArr[i] = buttons[i][col];
+	// 	}
+
+	// 	return colArr;
+	// }
+	public Tile[] getColumnFromButtons(int col){
+		Tile[] colArr = new Tile[ROWS];
 
 		for(int i=0; i<ROWS; i++){
-			colArr[i] = buttons[i][col];
+			colArr[i] = tiles[i][col];
 		}
 
 		return colArr;
 	}
 
 	// returns all the matches from an array (3 & above consecutive duplicates)
-	public LinkedList<Integer> getMatchesFromArray(JButton[] buttonArray){
+	// public LinkedList<Integer> getMatchesFromArray(JButton[] buttonArray){
+	// 	LinkedList<Integer> list = new LinkedList<Integer>();
+
+	// 	int cnt = 1; //number of consecutive duplicates
+
+	// 	for(int i = 0; i < buttonArray.length-1; i++){
+	// 		// if(((ImageIcon)buttonArray[i].getIcon()).equals((ImageIcon)buttonArray[i+1].getIcon())){
+	// 		if(((ImageIcon)tiles[i].getIcon()).equals(((ImageIcon)tiles[i+1].getIcon()))){
+	// 			cnt++;
+
+	// 			if((i+1) == (buttonArray.length-1) && cnt > 2){
+	// 				int startIndex = i - cnt + 2;
+	// 				list.add(startIndex);
+	// 				list.add(cnt);
+	// 			}
+	// 		}else{
+	// 			if(cnt > 2){
+	// 				int startIndex = i - cnt + 1;
+	// 				list.add(startIndex);
+	// 				list.add(cnt);
+	// 			}
+	// 			cnt = 1;
+				
+	// 		}	
+	// 	}
+
+	// 	return list;
+	// }
+
+	public LinkedList<Integer> getMatchesFromArray(Tile[] tilesArray){
 		LinkedList<Integer> list = new LinkedList<Integer>();
 
 		int cnt = 1; //number of consecutive duplicates
 
-		for(int i = 0; i < buttonArray.length-1; i++){
-			if(((ImageIcon)buttonArray[i].getIcon()).equals((ImageIcon)buttonArray[i+1].getIcon())){
+		for(int i = 0; i < tilesArray.length-1; i++){
+			// if(((ImageIcon)buttonArray[i].getIcon()).equals((ImageIcon)buttonArray[i+1].getIcon())){
+			if(((ImageIcon)tilesArray[i].getIcon()).equals(((ImageIcon)tilesArray[i+1].getIcon()))){
 				cnt++;
 
-				if((i+1) == (buttonArray.length-1) && cnt > 2){
+				if((i+1) == (tilesArray.length-1) && cnt > 2){
 					int startIndex = i - cnt + 2;
 					list.add(startIndex);
 					list.add(cnt);
