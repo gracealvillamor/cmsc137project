@@ -24,6 +24,7 @@ import java.text.*;
  */
 public class TCPClient implements Constants{
 	private boolean isFinished = false;
+	private static MainFrame frame;
 	public static void main(String[] args) throws Exception{
 		if (args.length != 1){
 			System.out.println("Usage: java TCPClient <server address>");
@@ -32,19 +33,21 @@ public class TCPClient implements Constants{
 		
 		String SERVER_ADDRESS = args[0];
 
-		MainFrame frame = new MainFrame(SERVER_ADDRESS);
+		frame = new MainFrame(SERVER_ADDRESS);
 
 		frame.setTitle("ICS na Match!");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
 		frame.setResizable(false);
 		frame.setSize(new Dimension(800,640));
+
 	}
 	public boolean isFinished(){
 		return isFinished;
 	}
 	public void run(DataModel model) throws Exception{
-		
+
+		model.setFrame(frame);
 		final Socket SOCK = new Socket(model.getServerAddress(), 60010); //ip address of server and port to connect to
 		final PrintStream OUT = new PrintStream(SOCK.getOutputStream());
 		final InputStreamReader reader = new InputStreamReader(SOCK.getInputStream());
@@ -244,8 +247,6 @@ class UDPClient implements Constants{
 								// painclude po ng name, score. at level na naachieve ni user
 								// wag na po lagyan ng click somewhere or press something to continue. 
 								//wag na bigyan ng options si user, ipaclose na yung window kasi di naman magrerestart server pag nag new game sya.
-								
-								model.getGame().setVisible(false);
 								model.getFrame().showGameOverPanel();
 							}else{
 								// @UITEAM: remove previous timerPanel from gamePanel and add a new timerPanel
@@ -525,10 +526,6 @@ class MainFrame extends JFrame{
 				cards.add(gamePanel, "game");
 				layout.show(cards, "game");
 				gamePanel.start();
-			}else if(e.getActionCommand().equals("game_over")){
-				// ResultPanel resultPanel = new ResultPanel(model);
-				// cards.add(resultPanel, "result");
-				// layout.show(cards, "result");
 			}
 			
 		}
@@ -1159,26 +1156,22 @@ class ResultPanel extends JPanel{ //panel showing results
 	private String name;
 
 	public ResultPanel(DataModel model){
-		img = new ImageIcon("bg.png").getImage();
+		img = new ImageIcon("gameover.jpg").getImage();
 		Dimension size = new Dimension(img.getWidth(null), img.getHeight(null));
 	    setSize(size);
 	    setLayout(null);
 
 	    this.model = model;
-
-	    GameOverImagePanel go = new GameOverImagePanel();
-	    name = model.getNameOfClient();
-
-	    go.setLocation(200, 10);
-    	this.add(go);
 	}
 	public void paintComponent(Graphics g) {
 	  	Graphics2D g2d = (Graphics2D)g;
     
     	g.drawImage(img, 0, 0, null);
     	g.setColor(Color.WHITE);
-		g.setFont(new Font("Courier", Font.BOLD, 25));
-		g.drawString(name, 200, 300);
+		g.setFont(new Font("Courier", Font.BOLD, 30));
+		g.drawString(model.getNameOfClient(), 350, 400);
+		g.drawString("You have reached level " + model.getLevel(), 200, 450);
+		g.drawString("Score: " + Integer.toString(model.getScores().get(model.getNameOfClient())), 340, 500);
   }
 }
 
@@ -1186,29 +1179,24 @@ class WinnerPanel extends JPanel{ //panel showing results
 
 	private Image img;
 	private DataModel model;
-	private String name;
 
 	public WinnerPanel(DataModel model){
-		img = new ImageIcon("bg.png").getImage();
+		img = new ImageIcon("result.jpg").getImage();
 		Dimension size = new Dimension(img.getWidth(null), img.getHeight(null));
 	    setSize(size);
 	    setLayout(null);
 
 	    this.model = model;
-
-	    WinnerImagePanel go = new WinnerImagePanel();
-	    name = model.getNameOfClient();
-
-	    go.setLocation(120, 10);
-    	this.add(go);
 	}
 	public void paintComponent(Graphics g) {
 	  	Graphics2D g2d = (Graphics2D)g;
     
     	g.drawImage(img, 0, 0, null);
-    	g.setColor(Color.WHITE);
-		g.setFont(new Font("Courier", Font.BOLD, 25));
-		g.drawString(name, 200, 300);
+    	g.setColor(Color.BLACK);
+		g.setFont(new Font("Courier", Font.BOLD, 30));
+		g.drawString(model.getNameOfClient(), 350, 350);
+		g.drawString("You have reached level " + model.getLevel(), 180, 400);
+		g.drawString("Score: " + Integer.toString(model.getScores().get(model.getNameOfClient())), 320, 450);
   }
 }
 
@@ -1223,63 +1211,6 @@ class JoinButton extends JButton{ //button in MenuPanel
 	    this.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
 	}
-}
-
-class LogoImagePanel extends JPanel{
-	private Image logo; 
-
-	public LogoImagePanel(){
-		logo = new ImageIcon("logo.png").getImage();
-		Dimension size = new Dimension(logo.getWidth(null), logo.getHeight(null));
-	    setSize(size);
-	    setLayout(null);
-	}
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        this.setSize(480,200);
-        g.drawImage(logo, 0, 0, this); // see javadoc for more info on the parameters            
-    }
-
-}
-
-class GameOverImagePanel extends JPanel{
-	private Image logo; 
-
-	public GameOverImagePanel(){
-		logo = new ImageIcon("gameover.png").getImage();
-		Dimension size = new Dimension(logo.getWidth(null), logo.getHeight(null));
-	    setSize(size);
-	    setLayout(null);
-	}
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        this.setSize(350,260);
-        g.drawImage(logo, 0, 0, this); // see javadoc for more info on the parameters            
-    }
-
-}
-
-class WinnerImagePanel extends JPanel{
-	private Image logo; 
-
-	public WinnerImagePanel(){
-		logo = new ImageIcon("result.png").getImage();
-		Dimension size = new Dimension(logo.getWidth(null), logo.getHeight(null));
-	    setSize(size);
-	    setLayout(null);
-	}
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        this.setSize(560,180);
-        g.drawImage(logo, 0, 0, this); // see javadoc for more info on the parameters            
-    }
-
 }
 
 class MyPlayerPanel extends JPanel{ 
