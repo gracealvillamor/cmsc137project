@@ -248,7 +248,7 @@ class UDPServer implements Constants{
 									broadcast("SCORES:" + game.getStringPlayers());
 									System.out.println("SCORES:" + game.getStringPlayers());
 
-									num_players -= 1; // decrement number of players
+									if(game.getLowestPlayer() != null) num_players -= 1; // decrement number of players
 
 									game.levelUp();
 									game.startTimer();
@@ -643,6 +643,7 @@ class GameState implements Constants{
 		return false;
 	}
 	public String getLowestPlayer(){
+		this.lowest = null;
 		NetPlayer lowestPlayer = (NetPlayer)players.get(players.keySet().toArray()[0]);
 
 		for(Iterator ite=players.keySet().iterator();ite.hasNext();){

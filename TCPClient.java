@@ -884,29 +884,31 @@ class GamePanel extends JPanel implements Runnable{ //panel showing the game pro
 class GameProperPanel extends JPanel implements ActionListener, Constants{
 	private final JButton[][] buttons = new JButton[ROWS][COLS];
 
+	int dimension = 52;
+
 	ImageIcon icon1 = new ImageIcon("i1.png");
 	Image img1 = icon1.getImage();
-	Image newimg1 = img1.getScaledInstance(35, 35, java.awt.Image.SCALE_SMOOTH);
+	Image newimg1 = img1.getScaledInstance(dimension, dimension, java.awt.Image.SCALE_SMOOTH);
 	ImageIcon i1 = new ImageIcon(newimg1);
 
 	ImageIcon icon2 = new ImageIcon("i2.png");
 	Image img2 = icon2.getImage();
-	Image newimg2 = img2.getScaledInstance(35, 35, java.awt.Image.SCALE_SMOOTH);
+	Image newimg2 = img2.getScaledInstance(dimension, dimension, java.awt.Image.SCALE_SMOOTH);
 	ImageIcon i2 = new ImageIcon(newimg2);
 
 	ImageIcon icon3 = new ImageIcon("i3.png");
 	Image img3 = icon3.getImage();
-	Image newimg3 = img3.getScaledInstance(35, 35, java.awt.Image.SCALE_SMOOTH);
+	Image newimg3 = img3.getScaledInstance(dimension, dimension, java.awt.Image.SCALE_SMOOTH);
 	ImageIcon i3 = new ImageIcon(newimg3);
 
 	ImageIcon icon4 = new ImageIcon("i4.png");
 	Image img4 = icon4.getImage();
-	Image newimg4 = img4.getScaledInstance(35, 35, java.awt.Image.SCALE_SMOOTH);
+	Image newimg4 = img4.getScaledInstance(dimension, dimension, java.awt.Image.SCALE_SMOOTH);
 	ImageIcon i4 = new ImageIcon(newimg4);
 
 	ImageIcon icon5 = new ImageIcon("i5.png");
 	Image img5 = icon5.getImage();
-	Image newimg5 = img5.getScaledInstance(35, 35, java.awt.Image.SCALE_SMOOTH);
+	Image newimg5 = img5.getScaledInstance(dimension, dimension, java.awt.Image.SCALE_SMOOTH);
 	ImageIcon i5 = new ImageIcon(newimg5);
 
 	private UDPClient udpClient;
@@ -930,7 +932,7 @@ class GameProperPanel extends JPanel implements ActionListener, Constants{
 				buttons[i][j].setOpaque(false);
 				buttons[i][j].setBorderPainted(false);
 				buttons[i][j].setContentAreaFilled(false);
-				buttons[i][j].setMargin(new Insets(25, 25, 25, 25));
+				buttons[i][j].setMargin(new Insets(0,3,0,3));
 			}
 		}
 
